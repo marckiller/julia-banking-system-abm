@@ -2,6 +2,8 @@ mutable struct Loan_simple
     principal::Int
     interest::Float64
     due_in::Int
+    from::Int
+    to::Int
 end
 
 function total_due(loan::Loan_simple)::Int
