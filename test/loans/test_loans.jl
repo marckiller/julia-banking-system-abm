@@ -2,11 +2,13 @@ using Test
 include("../../src/loans/loan.jl")
 
 @testset "Loan struct and functions" begin
-    loan = Loan_simple(100_00, 0.1, 5)
+    loan = Loan_simple(100_00, 0.1, 5, 1, 2)
 
     @test loan.principal == 100_00
     @test loan.interest == 0.1
     @test loan.due_in == 5
+    @test loan.from == 1
+    @test loan.to == 2
 
     @test total_due(loan) == 110_00
 
