@@ -1,11 +1,13 @@
 using Test
-include("../../src/agents/agents.jl")
+include("../../src/agents/customer.jl")
+include("../../src/agents/bank.jl")
 
 @testset "Agent structs" begin
     #Customer
-    c = Customer(1, 500_00)
+    c = Customer(1, 500_00, 100_00)
     @test c.id == 1
     @test c.cash == 500_00
+    @test c.income == 100_00
 
     #Bank
     b = Bank(42, 1_000_00, 5_000_00)
