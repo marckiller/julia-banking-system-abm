@@ -7,14 +7,14 @@ mutable struct Bank <: Agent
     interest_rate_client::Float64
     interest_rate_bank::Float64 
     interest_rate_deposit::Float64
-    #loans_out::Vector{Loan}
-    #loans_in::Vector{Loan}
+    loans_out::Vector{Loan}
+    loans_in::Vector{Loan}
 end
 
 mutable struct Client <: Agent
     id::Int
     wealth::Int
     income::Int
-    #loans::Vector{Loan}
-    #deposits::Vector{Loan}
+    loans::Vector{Loan}
+    deposits::Vector{Loan}
 end
