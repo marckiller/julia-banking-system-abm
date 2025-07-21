@@ -3,8 +3,8 @@ using DataStructures
 mutable struct Simulation
     current_time::Int
     event_queue::PriorityQueue{Event, Int}
-    #customers::Vector{Agent}
-    #banks::Vector{Agent}
+    customers::Vector{Client}
+    banks::Vector{Bank}
 end
 
 function schedule_event!(sim::Simulation, event::Event)
