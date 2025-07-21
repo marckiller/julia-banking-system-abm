@@ -12,6 +12,7 @@ struct AmortizingLoan <: Loan
     principal::Int
     interest_rate::Float64
     schedule::Vector{Tuple{Int, Int}}
+    next_payment_time::Int
     borrower::Agent
     lender::Agent
 end
