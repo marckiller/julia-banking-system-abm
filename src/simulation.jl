@@ -1,6 +1,6 @@
 using DataStructures
 
-struct Simulation
+mutable struct Simulation
     current_time::Int
     event_queue::PriorityQueue{Event, Int}
     #customers::Vector{Agent}
@@ -13,9 +13,9 @@ end
 
 function run!(sim::Simulation, end_time::Int)
     while !isempty(sim.event_queue) && sim.current_time < end_time
-        event = dequeue!(sim.event_queue)
+        (event, _) = dequeue_pair!(sim.event_queue)
         sim.current_time = event.time
-        # Process the event
+        handle_event!(sim, event)
     end
 end
 
