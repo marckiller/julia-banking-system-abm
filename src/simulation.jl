@@ -1,25 +1,22 @@
 using DataStructures
 
-mutable struct Simulation
-    current_time::Int
-    event_queue::PriorityQueue{Event, Int}
-    customers::Vector{Client}
-    banks::Vector{Bank}
-end
+mutable struct SimulationState
 
-function schedule_event!(sim::Simulation, event::Event)
-    enqueue!(sim.event_queue, event, event.time)
-end
+    #counters
+    next_bank_id::Int
+    next_loan_id::Int
 
-function run!(sim::Simulation, end_time::Int)
-    while !isempty(sim.event_queue) && sim.current_time < end_time
-        (event, _) = dequeue_pair!(sim.event_queue)
-        sim.current_time = event.time
-        handle_event!(sim, event)
-    end
-end
+    time::Int
+    banks::Dict{Int, Bank}
+    loans::Dict{Int, Loan}
+    events::PriorityQueue{Int, Event}
 
-function handle_event!(sim::Simulation, event::Event)
-    println("[$(event.time)] Event: $(event.type), payload: $(event.payload)")
-    # TODO handle the event based on its type
+    # Additional fields for simulation state
+    total_deposits::Int
+    total_loans::Int
+    total_interbank_assets::Int
+    total_interbank_liabilities::Int
+
+    # Statistics for the simulation
+    statistics::Dict{Symbol, Any}
 end
