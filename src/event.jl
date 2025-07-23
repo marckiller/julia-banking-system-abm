@@ -4,38 +4,23 @@ struct Event
     payload::Dict{Symbol, Any}
 end
 
-function handle_loan_request!(sim::Simulation, payload::Dict{Symbol, Any})
-    client = payload[:client]
-    amount = payload[:amount]
-
-    score_model = SimpleScoreModel()
-    if score(score_model, client) < 0.5
-        println("Loan denied: low credit score.")
-        return
-    end
-
-    # Find a bank that can grant the loan 
-    #TODO: Implement a more sophisticated bank selection process
-    # current implementation doesn't force interbank lending 
-
-    for agent in sim.banks
-        if agent.reserves >= amount
-            bank = agent
-
-            loan = create_amortizing_loan(amount, bank.interest_rate_client, sim.current_time, 3, 7, client, bank)
-
-            push!(client.loans, loan)
-            push!(bank.loans_outstanding, loan)
-
-            client.wealth += amount
-            bank.reserves -= amount
-
-            (t_next, _) = loan.schedule[1]
-            schedule_event!(sim, Event(t_next, :loan_repayment, Dict(:loan => loan, :index => 1)))
-            return
-        end
-    end
-
-    println("No bank could grant the loan: insufficient reserves.")
+function EventClientLoanRequest(time::Int, bank_id::Int, principal::Int, term::Int)
+    return Event(time, :client_loan_request, Dict(:bank_id => bank_id, :principal => principal, :term => term))
 end
 
+function EventInterbankLoanRequest(time::Int, bank_id::Int, principal::Int, term::Int)
+    return Event(time, :interbank_loan_request, Dict(:bank_id => bank_id, :principal => principal, :term => term))
+end
+
+function EventGrantLoan(time::Int, loan_id::Int, borrower::Symbol, lender::Symbol, principal::Int, annual_interest_rate::Float64, term::Int)
+    return Event(time, :grant_loan, Dict(:loan_id => loan_id, :borrower => borrower, :lender => lender, :principal => principal, :annual_interest_rate => annual_interest_rate, :term => term))
+end
+
+function EventRepayLoan(time::Int, loan_id::Int)
+    #loans are kept in the SimulationState loan book (loans::Dict{Int, Loan})
+    return Event(time, :repay_loan, Dict(:loan_id => loan_id))
+end
+
+function EventClientDepositRequest(time::Int, bank_id::Int, principal::Int)
+    return Event(time, :client_deposit_request, Dict(:bank_id => bank_id, :principal => principal))
+end

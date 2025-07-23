@@ -1,16 +1,18 @@
-using DataStructures
+const SIM_PARAMS = Dict(
+    :tick_length_days => 1,
+    :simulation_duration_ticks => 365,
+    
+    :loan_request_rate => 5.0,
+    :deposit_request_rate => 4.0,
+    :loan_amount_distribution => () -> rand(1000:5000),
+    :deposit_amount_distribution => () -> rand(1000:5000),
+    :loan_default_probability_distribution => () -> rand(0.01:0.1),
+    :loan_term_distribution => () -> rand(30:180)*SIM_PARAMS[:tick_length_days],
 
-include("src/event.jl")
-include("src/simulation.jl")
+    :annual_credit_interest_rate => 0.08,
+    :annual_deposit_interest_rate => 0.02,
+    :min_acceptable_ev_margin => 1.00,
 
-sim = Simulation(0, PriorityQueue{Event, Int}())
-
-ev1 = Event(10, :print, Dict(:msg => "Hello at t=10"))
-ev2 = Event(5, :print, Dict(:msg => "Early hello"))
-ev3 = Event(20, :print, Dict(:msg => "Late hello"))
-
-schedule_event!(sim, ev1)
-schedule_event!(sim, ev2)
-schedule_event!(sim, ev3)
-
-run!(sim, 30)
+    :interbank_interest_rate => 0.04,
+    :interbank_loan_term_days => 1,
+    :interbank_match_strategy => :random)
