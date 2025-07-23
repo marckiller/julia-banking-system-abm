@@ -2,17 +2,17 @@ abstract type Loan end
 
 struct BulletLoan <: Loan
     principal::Int
-    interest_rate::Float64
+    annual_interest_rate::Float64
     term::Int #in days
-    start_time::Int
+    issue_date::Int
     end_time::Int
     repay_amount::Int
     borrower::Symbol
     lender::Symbol
 end
 
-function BulletLoan(principal::Int, interest_rate::Float64, term::Int, start_time::Int, borrower::Symbol, lender::Symbol)
-    end_time = start_time + term
-    repay_amount = round(Int, principal * (1 + interest_rate / 365) ^ term)
-    return BulletLoan(principal, interest_rate, term, start_time, end_time, repay_amount, borrower, lender)
+function BulletLoan(principal::Int, annual_interest_rate::Float64, term::Int, issue_date::Int, borrower::Symbol, lender::Symbol)
+    end_time = issue_date + term
+    repay_amount = round(Int, principal * (1 + annual_interest_rate / 365) ^ term)
+    return BulletLoan(principal, annual_interest_rate, term, issue_date, end_time, repay_amount, borrower, lender)
 end

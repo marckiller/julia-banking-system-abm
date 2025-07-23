@@ -20,3 +20,7 @@ mutable struct SimulationState
     #Statistics for the simulation
     statistics::Dict{Symbol, Any}
 end
+
+function schedule_event!(state::SimulationState, event::Event)
+    enqueue!(state.events, event.time, event)
+end
