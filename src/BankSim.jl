@@ -15,6 +15,6 @@ include("handle_event.jl")
 export Bank, create_bank
 export Loan, BulletLoan, create_loan
 export Event, AbstractEvent, EventGrantClientLoan, EventRepaymentClientLoan, EventGrantBankLoan, EventRepaymentBankLoan, EventRepaymentDeposit, EventRequestClientLoan, EventRequestBankLoan, EventRequestClientDeposit
-export Simulation, create_simulation, schedule_event!, execute_event!, get_event_id!, get_bank_id!, get_loan_id!, run!
+export Simulation, create_simulation, schedule_event!, execute_event!, get_event_id!, get_bank_id!, get_loan_id!, run!, log_bank_states!
 @info "Project module loaded"
 end
