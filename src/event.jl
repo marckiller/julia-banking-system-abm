@@ -1,26 +1,93 @@
-struct Event
+abstract type AbstractEvent end
+
+# repayment events
+struct EventRepaymentClientLoan <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
     time::Int
-    type::Symbol
-    payload::Dict{Symbol, Any}
+    loan_id::Int
+    default_probability::Float64
 end
 
-function EventClientLoanRequest(time::Int, bank_id::Int, principal::Int, term::Int)
-    return Event(time, :client_loan_request, Dict(:bank_id => bank_id, :principal => principal, :term => term))
+struct EventRepaymentBankLoan <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    loan_id::Int
 end
 
-function EventInterbankLoanRequest(time::Int, bank_id::Int, principal::Int, term::Int)
-    return Event(time, :interbank_loan_request, Dict(:bank_id => bank_id, :principal => principal, :term => term))
+struct EventRepaymentDeposit <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    deposit_id::Int
 end
 
-function EventGrantLoan(time::Int, loan_id::Int, borrower::Symbol, lender::Symbol, principal::Int, annual_interest_rate::Float64, term::Int)
-    return Event(time, :grant_loan, Dict(:loan_id => loan_id, :borrower => borrower, :lender => lender, :principal => principal, :annual_interest_rate => annual_interest_rate, :term => term))
+# granting events 
+
+struct EventGrantClientLoan <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    client_id::Union{Int, Nothing}
+    bank_id::Int
+    principal::Int
+    term::Int
+    annual_interest_rate::Float64
+    default_probability::Float64
 end
 
-function EventRepayLoan(time::Int, loan_id::Int)
-    #loans are kept in the SimulationState loan book (loans::Dict{Int, Loan})
-    return Event(time, :repay_loan, Dict(:loan_id => loan_id))
+struct EventGrantClientDeposit <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    client_id::Union{Int, Nothing}
+    bank_id::Int
+    principal::Int
+    term::Int
+    annual_interest_rate::Float64
 end
 
-function EventClientDepositRequest(time::Int, bank_id::Int, principal::Int)
-    return Event(time, :client_deposit_request, Dict(:bank_id => bank_id, :principal => principal))
+struct EventGrantBankLoan <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    bank_borrower_id::Int
+    bank_lender_id::Int
+    principal::Int
+    term::Int
+    annual_interest_rate::Float64
+end
+
+# requestin events
+
+struct EventRequestClientLoan <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    client_id::Union{Int, Nothing}
+    bank_id::Int
+    principal::Int
+    term::Int
+    default_probability::Float64
+end
+
+struct EventRequestClientDeposit <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    client_id::Union{Int, Nothing}
+    bank_id::Int
+    principal::Int
+    term::Int
+end
+
+struct EventRequestBankLoan <: AbstractEvent
+    event_id::Int
+    trigger_event_id::Union{Int, Nothing}
+    time::Int
+    bank_borrower_id::Int
+    bank_lender_id::Int
+    principal::Int
+    term::Int
 end
