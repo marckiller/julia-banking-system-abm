@@ -51,18 +51,23 @@ end
 
 function create_simulation(
     banks::Dict{Int, Bank} = Dict{Int, Bank}(),
-    scheduled_events::PriorityQueue{Int, AbstractEvent} = PriorityQueue{Int, AbstractEvent}(),
-    interbank_loaning_term::Int = 7)
+    scheduled_events::PriorityQueue{AbstractEvent, Int} = PriorityQueue{AbstractEvent, Int}(),
+    interbank_loaning_term::Int = 1)
+
+    next_bank_id = maximum(keys(banks)) + 1
+    next_event_id = isempty(scheduled_events) ? 1 :
+        maximum([key.event_id for (key, _) in scheduled_events]; init=0) + 1
+        
     return Simulation(
-        1,  # next_event_id
-        1,  # next_bank_id
+        next_event_id,  # next_event_id
+        next_bank_id,  # next_bank_id
         1,  # next_loan_id
         0,  # time
         banks,
         Dict{Int, Loan}(),  # client_loans
         Dict{Int, Loan}(),  # bank_loans
         Dict{Int, Loan}(),  # client_deposits
-        PriorityQueue{AbstractEvent, Int}(),
+        scheduled_events,
         AbstractEvent[],    # executed_events
         interbank_loaning_term,
         Loan[],             # history_client_loans
