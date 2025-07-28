@@ -30,13 +30,16 @@ The goal is to explore — through simulation — the emergence of stabilizing a
 ```
 /julia-banking-system-abm
 ├── src/
+|   ├── Project.jl              # imports 
 │   ├── bank.jl                 # Bank definition
 │   ├── loan.jl                 # Loan definition (deposit is also loan)
 │   ├── event.jl                # Event definition and constructors
 │   ├── event_handler.jl        # logic of each event type
-│   └── simulation.jl           # Global simulation state
+│   ├── simulation.jl           # Global simulation state
+|   └── utils.jl                # Utilities function
 ├── LICENSE
 ├── .gitignore
 ├── main.jl                     # simulation config and run
+├── plots.jl                     # ploting reserves, liabilities and assets in time
 └── README.md
 ```
