@@ -1,6 +1,3 @@
-include("simulation.jl")
-include("utils.jl")
-
 function handle_event!(simulation::Simulation, event::EventRepaymentClientLoan)
     #TODO: Later pop loans and return to simulation.history 
     loan = simulation.client_loans[event.loan_id]
@@ -63,16 +60,16 @@ function handle_event!(simulation::Simulation, event::EventGrantClientDeposit)
         event.annual_interest_rate,
         event.term,
         event.time,
-        event.client_id,  #this version: client_id is nothign
-        event.bank_id
+        event.bank_id, #deposit is a loan where bank is a borrower
+        event.client_id  #this version: client_id is nothign
     )
 
     #schedule repayment event
     repayment_event = EventRepaymentDeposit(
-        event_id = get_event_id!(simulation),
-        trigger_event_id = event.event_id,
-        time = deposit.time_repay,
-        deposit_id = deposit.id
+        get_event_id!(simulation),
+        event.event_id,
+        deposit.time_repay,
+        deposit.id
     )
     #update bank state and simulation state
     simulation.client_deposits[deposit.id] = deposit
@@ -236,5 +233,48 @@ function handle_event!(simulation::Simulation, event::EventRequestBankLoan)
         return true
     else
         return false
+    end
+end
+
+function handle_event!(simulation::Simulation, event::EventRequestClientDeposit)
+    #aleways accept deposits
+    bank = simulation.banks[event.bank_id]
+    event_grant_deposit = EventGrantClientDeposit(
+        get_event_id!(simulation),
+        event.event_id,
+        event.time,
+        nothing,
+        event.bank_id,
+        event.principal,
+        event.term,
+        bank.R_deposit
+    )
+
+    execute_event!(simulation, event_grant_deposit)
+    return true
+end
+
+function execute_event!(simulation::Simulation, event::AbstractEvent)
+    simulation.time = event.time
+    handle_event!(simulation, event)
+    if event isa EventRepaymentClientLoan
+        loan = pop!(simulation.client_loans, event.loan_id)
+        push!(simulation.history_client_loans, loan)
+    elseif event isa EventRepaymentBankLoan
+        loan = pop!(simulation.bank_loans, event.loan_id)
+        push!(simulation.history_bank_loans, loan)
+    elseif event isa EventRepaymentDeposit
+        deposit = pop!(simulation.client_deposits, event.deposit_id)
+        push!(simulation.history_client_deposits, deposit)
+    end
+    push!(simulation.executed_events, event)
+end
+
+function run_simulation!(simulation::Simulation)
+    while !isempty(simulation.scheduled_events)
+        event = dequeue!(simulation.scheduled_events)
+        simulation.time = max(simulation.time, event.time)
+        execute_event!(simulation, event)
+        log_bank_states!(simulation)
     end
 end
