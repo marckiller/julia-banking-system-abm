@@ -1,6 +1,3 @@
-using DataStructures
-using DataFrames
-
 mutable struct Simulation
 
     #counters 
@@ -34,32 +31,6 @@ function schedule_event!(simulation::Simulation, event::AbstractEvent)
     enqueue!(simulation.scheduled_events, event => event.time)
 end
 
-function execute_event!(simulation::Simulation, event::AbstractEvent)
-    simulation.time = event.time
-    handle_event!(simulation, event)
-    if event isa EventRepaymentClientLoan
-        loan = pop!(simulation.client_loans, event.loan_id)
-        push!(simulation.history_client_loans, loan)
-    elseif event isa EventRepaymentBankLoan
-        loan = pop!(simulation.bank_loans, event.loan_id)
-        push!(simulation.history_bank_loans, loan)
-    elseif event isa EventRepaymentDeposit
-        deposit = pop!(simulation.client_deposits, event.deposit_id)
-        push!(simulation.history_client_deposits, deposit)
-    end
-    push!(simulation.executed_events, event)
-end
-
-function run!(simulation::Simulation)
-    while !isempty(simulation.scheduled_events)
-        event = dequeue!(simulation.scheduled_events)
-        simulation.time = max(simulation.time, event.time)
-        execute_event!(simulation, event)
-        log_bank_states!(simulation)
-    end
-
-end
-
 function get_event_id!(sim::Simulation)
     id = sim.next_event_id
     sim.next_event_id += 1
@@ -67,7 +38,7 @@ function get_event_id!(sim::Simulation)
 end
 
 function get_bank_id!(sim::Simulation)
-    id = sim.next_bank_id
+    id = sim.next_bank_id 
     sim.next_bank_id += 1
     return id
 end

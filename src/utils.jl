@@ -1,5 +1,3 @@
-using Random
-
 function random_keys_except(dict::Dict, exclude_key)
     other_keys = filter(k -> k != exclude_key, keys(dict))
     return shuffle!(collect(other_keys))
@@ -29,3 +27,4 @@ function pop!(dict::Dict, key, default=nothing)
         return default
     end
 end
+
