@@ -54,7 +54,7 @@ function create_simulation(
     scheduled_events::PriorityQueue{AbstractEvent, Int} = PriorityQueue{AbstractEvent, Int}(),
     interbank_loaning_term::Int = 1)
 
-    next_bank_id = maximum(keys(banks)) + 1
+    next_bank_id = maximum([e.event_id for e in keys(scheduled_events)]; init=0) + 1
     next_event_id = isempty(scheduled_events) ? 1 :
         maximum([key.event_id for (key, _) in scheduled_events]; init=0) + 1
         
@@ -92,4 +92,12 @@ function log_bank_states!(sim::Simulation)
             total_loan_assets = bank.total_loan_assets
         ))
     end
+end
+
+function add_bank!(sim::Simulation, initial_reserves::Int, min_reserves::Float64, R_client_loan::Float64, R_bank_loan::Float64, R_deposit::Float64)
+    bank_id = get_bank_id!(sim)
+    bank = create_bank(bank_id, initial_reserves, min_reserves, R_client_loan, R_bank_loan, R_deposit)
+    sim.banks[bank_id] = bank
+    println("Bank $(bank.id) created with initial reserves: ", bank.reserves)
+    return bank
 end
