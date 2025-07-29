@@ -45,6 +45,7 @@ function handle_event!(simulation::Simulation, event::EventRepaymentDeposit)
         # note: bank at this point may have many other loans,
         # inter-bank loans and deposits
         deposit.is_defaulted = true
+        bank.total_liabilities -= deposit.repayment
    end
 end
 
