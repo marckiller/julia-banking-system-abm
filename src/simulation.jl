@@ -77,8 +77,13 @@ function create_simulation(
             time = Int[],
             id = Int[],
             reserves = Int[],
+            total_liabilities = Int[],
             total_loan_assets = Int[],
-            total_liabilities = Int[])
+            min_reserves = Float64[],
+            R_client_loan = Float64[],
+            R_bank_loan = Float64[],
+            R_deposit = Float64[]
+        )
     )
 end
 
@@ -89,7 +94,11 @@ function log_bank_states!(sim::Simulation)
             id = id,
             reserves = bank.reserves,
             total_liabilities = bank.total_liabilities,
-            total_loan_assets = bank.total_loan_assets
+            total_loan_assets = bank.total_loan_assets,
+            min_reserves = bank.min_reserves,
+            R_client_loan = bank.R_client_loan,
+            R_bank_loan = bank.R_bank_loan,
+            R_deposit = bank.R_deposit
         ))
     end
 end
