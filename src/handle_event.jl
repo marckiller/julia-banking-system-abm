@@ -73,6 +73,7 @@ function handle_event!(simulation::Simulation, event::EventGrantClientDeposit)
     )
     #update bank state and simulation state
     simulation.client_deposits[deposit.id] = deposit
+    bank.reserves += deposit.principal
     bank.total_liabilities += deposit.repayment
 
     #schedule repayment event
