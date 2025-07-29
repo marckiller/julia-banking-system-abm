@@ -29,7 +29,6 @@ function handle_event!(simulation::Simulation, event::EventRepaymentBankLoan)
         bank_borrower.total_liabilities -= loan.repayment
         bank_lender.total_loan_assets -= loan.repayment
         loan.is_defaulted = true
-        println("Bank $bank_borrower.id cannot repay loan $loan.id due to insufficient reserves.")
     end
 end
 
@@ -46,8 +45,7 @@ function handle_event!(simulation::Simulation, event::EventRepaymentDeposit)
         # note: bank at this point may have many other loans,
         # inter-bank loans and deposits
         deposit.is_defaulted = true
-        println("Bank $bank.id cannot repay deposit $deposit.id due to insufficient reserves.")
-    end
+   end
 end
 
 function handle_event!(simulation::Simulation, event::EventGrantClientDeposit)
