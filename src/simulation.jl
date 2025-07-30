@@ -25,6 +25,9 @@ mutable struct Simulation
     history_client_deposits::Vector{Loan}
     history_banks::DataFrame
 
+    #Same time execution priority order 
+    priority_order::Vector{DataType}
+
 end
 
 function schedule_event!(simulation::Simulation, event::AbstractEvent)
@@ -83,7 +86,18 @@ function create_simulation(
             R_client_loan = Float64[],
             R_bank_loan = Float64[],
             R_deposit = Float64[]
-        )
+        ),
+       [
+            EventRepaymentBankLoan,
+            EventRepaymentDeposit,
+            EventRepaymentClientLoan,
+            EventRequestClientDeposit,
+            EventRequestClientLoan,
+            EventGrantBankLoan,
+            EventGrantClientLoan,
+            EventGrantClientDeposit,
+            EventRequestBankLoan
+       ]
     )
 end
 

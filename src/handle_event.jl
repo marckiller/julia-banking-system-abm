@@ -272,9 +272,26 @@ end
 
 function run_simulation!(simulation::Simulation)
     while !isempty(simulation.scheduled_events)
-        event = dequeue!(simulation.scheduled_events)
-        simulation.time = max(simulation.time, event.time)
-        execute_event!(simulation, event)
+        (next_event, _) = peek(simulation.scheduled_events)
+        current_time = next_event.time
+        simulation.time = current_time
+
+        today_events = AbstractEvent[]
+        while !isempty(simulation.scheduled_events)
+            (e, _) = peek(simulation.scheduled_events)
+            if e.time!= current_time
+                break
+            end
+            push!(today_events, dequeue!(simulation.scheduled_events))
+        end
+
+        for event_type in simulation.priority_order
+            for event in today_events
+                if isa(event, event_type)
+                    execute_event!(simulation, event)
+                end
+            end
+        end
         log_bank_states!(simulation)
     end
 end
