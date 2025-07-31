@@ -7,7 +7,7 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourname/julia-banking-system-abm.git
+git clone https://github.com/marckiller/julia-banking-system-abm.git
 cd julia-banking-system-abm
 ```
 
