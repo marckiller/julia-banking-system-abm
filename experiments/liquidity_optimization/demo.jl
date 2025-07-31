@@ -12,10 +12,10 @@ Random.seed!(RNG_SEED)
 
 function run_experiment()
 
-    MIN_RESERVES_FACTOR = 0.3
-    R_CLIENT_LOAN = 0.20
-    R_BANK_LOAN = 0.04
-    R_DEPOSIT = 0.03
+    MIN_RESERVES_FACTOR =  0.6
+    R_CLIENT_LOAN = 0.2
+    R_BANK_LOAN = 0.05
+    R_DEPOSIT = 0.01
     
     # === simulation setup ===
     println("\nSimulation with $NUM_BANKS banks and total reserves: $TOTAL_INITIAL_RESERVES")
