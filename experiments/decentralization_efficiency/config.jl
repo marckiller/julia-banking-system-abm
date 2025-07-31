@@ -1,0 +1,25 @@
+const RNG_SEED = 42
+
+# === Banks ===
+const TOTAL_INITIAL_RESERVES = 1_000_000_000
+const MIN_RESERVES_FACTOR = 0.6
+const R_CLIENT_LOAN = 0.2
+const R_BANK_LOAN = 0.05
+const R_DEPOSIT = 0.01
+
+# === Client Loans ===
+const CLIENT_LOAN_AMOUNT_RANGE = (50_000, 1_000_000)
+const CLIENT_LOAN_TERMS = [30, 90, 180, 360, 720, 1080]
+const CLIENT_LOAN_DEFAULT_PROB_RANGE = (0.01, 0.2)
+const CLIENT_LOAN_ARRIVAL_RATE = 40.0
+
+# === Deposits ===
+const CLIENT_DEPOSIT_AMOUNT_RANGE = (10_000, 1_00_000)
+const CLIENT_DEPOSIT_TERMS = [30, 90, 180, 360]
+const CLIENT_DEPOSIT_ARRIVAL_RATE = 100.0
+
+# === Interbank Loans ===
+const INTERBANK_LOAN_TERM = 1
+
+# === Simulation Horizon ===
+const SIMULATION_DURATION_DAYS = 3600
