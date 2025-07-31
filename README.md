@@ -1,8 +1,36 @@
 # julia-banking-system-abm
-
 > ⚠️ **Development Version**  
 > This project is in active development. Assumptions, implementations, and architecture are subject to change as the model evolves.
 ---
+## Quick Start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yourname/julia-banking-system-abm.git
+cd julia-banking-system-abm
+```
+
+### 2. Launch Julia with the project environment
+
+```bash
+julia --project=.
+```
+This will install all packages listed in Project.toml.
+
+### 3. Instantiate dependencies
+
+```bash
+using Pkg
+Pkg.instantiate()
+```
+
+### 4. Run an experiment
+
+```bash
+julia --project=. experiments/liquidity_optimization/demo.jl
+```
+
 ## Project motivation
 
 This project aims to create the simplest possible agent-based simulation of a banking system that includes:
@@ -30,16 +58,19 @@ The goal is to explore — through simulation — the emergence of stabilizing a
 ```
 /julia-banking-system-abm
 ├── src/
-|   ├── Project.jl              # imports 
-│   ├── bank.jl                 # Bank definition
-│   ├── loan.jl                 # Loan definition (deposit is also loan)
-│   ├── event.jl                # Event definition and constructors
-│   ├── event_handler.jl        # logic of each event type
+│   ├── BankSim.jl              # Main module – imports all components
+│   ├── bank.jl                 # Bank structure and logic
+│   ├── loan.jl                 # Loan definition (deposits are also loans)
+│   ├── event.jl                # Event types used in the system
+│   ├── handle_event.jl         # Logic for handling each type of event
+│   ├── simulation_io.jl        # Save/load events, loans, and bank states
 │   ├── simulation.jl           # Global simulation state
-|   └── utils.jl                # Utilities function
+│   └── utils.jl                # Helper functions
+├── experiments/                # Experimental playgrounds
 ├── LICENSE
 ├── .gitignore
-├── main.jl                     # simulation config and run
-├── plots.jl                     # ploting reserves, liabilities and assets in time
+├── Project.toml
 └── README.md
 ```
+## Getting 
+
