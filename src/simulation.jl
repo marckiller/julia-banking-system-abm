@@ -89,8 +89,8 @@ function create_simulation(
         ),
        [
             EventRepaymentBankLoan,
-            EventRepaymentDeposit,
             EventRepaymentClientLoan,
+            EventRepaymentDeposit,
             EventRequestClientDeposit,
             EventRequestClientLoan,
             EventGrantBankLoan,
@@ -121,6 +121,5 @@ function add_bank!(sim::Simulation, initial_reserves::Int, min_reserves::Float64
     bank_id = get_bank_id!(sim)
     bank = create_bank(bank_id, initial_reserves, min_reserves, R_client_loan, R_bank_loan, R_deposit)
     sim.banks[bank_id] = bank
-    println("Bank $(bank.id) created with initial reserves: ", bank.reserves)
     return bank
 end

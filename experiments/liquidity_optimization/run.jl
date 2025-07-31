@@ -5,19 +5,85 @@ using CSV
 include("config.jl")
 include("utils.jl")
 using Random
+using Serialization
 Random.seed!(RNG_SEED)
 
-function run_experiment()
+function single_run(MIN_RESERVES_FACTOR, R_CLIENT_LOAN, R_BANK_LOAN, R_DEPOSIT, simulation_scheduled_events)
 
-    println("Simulation with $NUM_BANKS banks and total reserves: $TOTAL_INITIAL_RESERVES")
-
-    reserves_split = generate_initial_reserves(TOTAL_INITIAL_RESERVES, NUM_BANKS, MIN_INITIAL_RESERVES)
     sim = create_simulation()
+    reserves_split = generate_initial_reserves(TOTAL_INITIAL_RESERVES, NUM_BANKS)
     sim.interbank_loaning_term = INTERBANK_LOAN_TERM
     for reserve in reserves_split
         add_bank!(sim, reserve, MIN_RESERVES_FACTOR, R_CLIENT_LOAN, R_BANK_LOAN, R_DEPOSIT)
     end
 
+    sim.scheduled_events = simulation_scheduled_events 
+    log_bank_states!(sim)
+    run_simulation!(sim)
+    #bank decisions 
+    n_client_loan_requests = count(x -> x isa EventRequestClientLoan, sim.executed_events)
+    n_client_loan_granted = count(x -> x isa EventGrantClientLoan, sim.executed_events)
+    n_client_deposit_requests = count(x -> x isa EventRequestClientDeposit , sim.executed_events)
+    n_client_deposit_granted = count(x -> x isa  EventGrantClientDeposit , sim.executed_events)
+    n_interbank_loan_granted = count(x -> x isa EventGrantBankLoan, sim.executed_events)
+
+    #loan statistics (repay_time cutoff at simulation duration)
+    interbank_loans = sim.history_bank_loans
+    interbank_loans = filter(x -> x.time_repay <= SIMULATION_DURATION_DAYS, interbank_loans)
+
+    client_loans = sim.history_client_loans
+    client_loans = filter(x -> x.time_repay <= SIMULATION_DURATION_DAYS, client_loans)
+
+    client_deposits = sim.history_client_deposits
+    client_deposits = filter(x -> x.time_repay <= SIMULATION_DURATION_DAYS, client_deposits)
+
+    defaulted_loans = filter(x -> x.is_defaulted, client_loans)
+    defaulted_deposits = filter(x -> x.is_defaulted, client_deposits)
+    defaulted_bank_loans = filter(x -> x.is_defaulted, interbank_loans)
+    
+    #bank states 
+    bank_states = sim.history_banks
+    bank_states = filter(row -> row.time <= SIMULATION_DURATION_DAYS, bank_states)
+
+    total_initial_net = 0
+    total_final_net = 0
+    for (id, bank) in sim.banks
+        bank_data = filter(row -> row.id == id, bank_states)
+        total_initial_net += first(bank_data).reserves + first(bank_data).total_loan_assets - first(bank_data).total_liabilities
+        total_final_net += last(bank_data).reserves + last(bank_data).total_loan_assets - last(bank_data).total_liabilities
+    end
+
+    return Dict(
+        "RANDOM_SEED" => RNG_SEED,#
+        "NUM_BANKS" => NUM_BANKS,#
+        "TOTAL_INITIAL_RESERVES" => TOTAL_INITIAL_RESERVES,#
+        "MIN_RESERVES_FACTOR" => MIN_RESERVES_FACTOR,#
+        "R_CLIENT_LOAN" => R_CLIENT_LOAN,#
+        "R_DEPOSIT" => R_DEPOSIT,#
+        "R_BANK_LOAN" => R_BANK_LOAN,#
+        "n_client_loan_requests" => n_client_loan_requests,#
+        "n_client_loan_granted" => n_client_loan_granted,#
+        "n_client_deposit_requests" => n_client_deposit_requests,#
+        "n_client_deposit_granted" => n_client_deposit_granted,#
+        "n_interbank_loan_granted" => n_interbank_loan_granted,#
+        "n_client_loans" => length(client_loans),#
+        "n_client_deposits" => length(client_deposits),#
+        "n_interbank_loans" => length(interbank_loans),#
+        "n_defaulted_loans" => length(defaulted_loans),#
+        "n_defaulted_deposits" => length(defaulted_deposits),#
+        "n_defaulted_bank_loans" => length(defaulted_bank_loans),#
+        "total_initial_banks_net" => total_initial_net,#
+        "total_final_banks_net" => total_final_net
+    )
+end
+
+function run_experiment()
+
+    # === simulation setup ===
+    println("\nSimulation with $NUM_BANKS banks and total reserves: $TOTAL_INITIAL_RESERVES")
+    sim = create_simulation()
+
+    # === event scheduling as random process ===
     current_time_loan = 0
     while current_time_loan ≤ SIMULATION_DURATION_DAYS
         current_time_loan += rand(Poisson(1 / CLIENT_LOAN_ARRIVAL_RATE))
@@ -62,71 +128,57 @@ function run_experiment()
         schedule_event!(sim, event)
     end
 
-    log_bank_states!(sim)
-    println("Initial bank states logged.")
-    run_simulation!(sim)
+    results = DataFrame(
+        RANDOM_SEED = Int[],
+        NUM_BANKS = Int[],
+        TOTAL_INITIAL_RESERVES = Int[],
+        MIN_RESERVES_FACTOR = Float64[],
+        R_CLIENT_LOAN = Float64[],
+        R_DEPOSIT = Float64[],
+        R_BANK_LOAN = Float64[],
+        n_client_loan_requests = Int[],
+        n_client_loan_granted = Int[],
+        n_client_deposit_requests = Int[],
+        n_client_deposit_granted = Int[],
+        n_interbank_loan_granted = Int[],
+        n_client_loans = Int[],
+        n_client_deposits = Int[],
+        n_interbank_loans = Int[],
+        n_defaulted_loans = Int[],
+        n_defaulted_deposits = Int[],
+        n_defaulted_bank_loans = Int[],
+        total_initial_banks_net = Float64[],
+        total_final_banks_net = Float64[]
+    )
 
-    println("Simulation completed. Final bank states:")
-    for (id, bank) in sim.banks
-        println("Bank ID: $id, Reserves: $(bank.reserves), Total Liabilities: $(bank.total_liabilities), Total Loan Assets: $(bank.total_loan_assets)")
+    total_n_of_runs = length(V_MIN_RESERVES_FACTOR) * length(V_R_CLIENT_LOAN) * length(V_R_DEPOSIT) * length(V_R_BANK_LOAN)
+    run_counter = 0
+    for MIN_RESERVES_FACTOR in V_MIN_RESERVES_FACTOR
+        for R_CLIENT_LOAN in V_R_CLIENT_LOAN
+            for R_DEPOSIT in V_R_DEPOSIT
+                for R_BANK_LOAN in V_R_BANK_LOAN
+
+                    base_events = deepcopy(sim.scheduled_events)
+                    result = single_run(MIN_RESERVES_FACTOR, R_CLIENT_LOAN, R_BANK_LOAN, R_DEPOSIT, base_events)
+                    push!(results, result)
+                    run_counter += 1
+                    if run_counter % 20 == 0
+                        CSV.write("results/liquidity_optimization/results_tmp.csv", results)
+                        println("Temporary results saved to results_tmp.csv after $run_counter runs.")
+                    end
+                    println("Run $run_counter of $total_n_of_runs completed.")
+                    
+                end
+            end
+        end
     end
 
-    #save results to CSV
-    CSV.write("bank_states.csv", sim.history_banks)
-    println("Bank states saved to bank_states.csv")
-
-    # compute default stats before summary
-    interbank_loans = sim.history_bank_loans
-    defaulted_loans = count(loan -> loan.is_defaulted, interbank_loans)
-    fraction_defaulted = length(interbank_loans) > 0 ? defaulted_loans / length(interbank_loans) : 0.0
-
-    deposits = sim.history_client_deposits
-    defaulted_deposits = count(deposit -> deposit.is_defaulted, deposits)
-    fraction_defaulted_deposits = length(deposits) > 0 ? defaulted_deposits / length(deposits) : 0.0
-
-    event_history = sim.executed_events
-    total_loan_requests = count(event -> event isa EventRequestClientLoan, event_history)
-    total_approved_loans = count(event -> event isa EventGrantClientLoan, event_history)
-    approval_ratio = total_loan_requests > 0 ? total_approved_loans / total_loan_requests : 0.0
-
-    total_bank_loan_requests = count(event -> event isa EventRequestBankLoan, event_history)
-    total_approved_bank_loans = count(event -> event isa EventGrantBankLoan, event_history)
-    bank_approval_ratio = total_bank_loan_requests > 0 ? total_approved_bank_loans / total_bank_loan_requests : 0.0
-
-    total_loan_volume = sum(event.principal for event in event_history if event isa EventGrantClientLoan)
-    total_days = maximum([event.time for event in event_history if event isa EventGrantClientLoan]; init=1)
-    average_daily_loan_volume = total_loan_volume / total_days
-
-    total_deposit_volume = sum(event.principal for event in event_history if event isa EventGrantClientDeposit)
-    total_deposit_days = maximum([event.time for event in event_history if event isa EventGrantClientDeposit]; init=1)
-    average_daily_deposit_volume = total_deposit_volume / total_deposit_days
-
-    println("\n======= Summary =======")
-    println("interbank defaulted loans: $defaulted_loans / $(length(interbank_loans)) ($(round(100 * fraction_defaulted, digits=2))%)")
-    println("client defaulted deposits: $defaulted_deposits / $(length(deposits)) ($(round(100 * fraction_defaulted_deposits, digits=2))%)")
-    println("client loan approval: $total_approved_loans / $total_loan_requests ($(round(100 * approval_ratio, digits=2))%)")
-    println("bank loan approval: $total_approved_bank_loans / $total_bank_loan_requests ($(round(100 * bank_approval_ratio, digits=2))%)")
-    println("avg daily loan volume: $(round(average_daily_loan_volume, digits=2))")
-    println("avg daily deposit volume: $(round(average_daily_deposit_volume, digits=2))")
-
-    println("\nbreached reserve days per bank:")
-    for bank in values(sim.banks)
-        bank_data = filter(row -> row.id == bank.id, sim.history_banks)
-        bank_data.min_abs_reserve = bank_data.min_reserves .* bank_data.total_liabilities
-        breached = bank_data[bank_data.reserves .< bank_data.min_abs_reserve, :]
-        unique_breached_days = unique(breached.time)
-        println("  Bank $(bank.id): $(length(unique_breached_days)) days")
-    end
-
-    println("\nreserve change summary:")
-    for (id, bank) in sim.banks
-        bank_data = filter(row -> row.id == id, sim.history_banks)
-        initial = first(bank_data).reserves
-        final = last(bank_data).reserves
-        delta_pct = round(100 * (final - initial) / initial, digits=2)
-        println("  Bank $id: $initial → $final  ($delta_pct%)")
-    end
+    CSV.write("results/liquidity_optimization/results.csv", results)
+    println("Results saved to results.csv")
+    println("Experiment completed.")
+    println("Total number of runs: $(nrow(results))")
 
 end
 
 run_experiment()
+
