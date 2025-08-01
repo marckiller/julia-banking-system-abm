@@ -28,8 +28,9 @@ Pkg.instantiate()
 ### 4. Run an experiment
 
 ```bash
-julia --project=. experiments/liquidity_optimization/demo.jl
+julia --project=. experiments/demo/run.jl
 ```
+This demo runs a full simulation of a small multi-bank system using predefined parameters from the config.jl file. Feel free to adjust any parameters to suit your own experimental needs or scenarios.
 
 ## Project motivation
 
@@ -52,6 +53,7 @@ The goal is to explore — through simulation — the emergence of stabilizing a
 - **Perfect Default Estimation**: Banks are given the borrower's probability of default (`P_default`) directly. No estimation is performed.
 - **Hard Reserve Constraint**: Each bank is required to maintain a reserve buffer proportional to its liabilities.
 - **Interbank Lending**: If a bank lacks sufficient reserves to grant a consumer loan, it selects another bank at random and attempts to borrow the needed funds via a one-day interbank loan.
+- **Loans and deposits policy** Banks always accept client deposits and always agree to issue interbank loans if they have sufficient liquidity. A bank will grant a client loan only if the expected value of the loan — computed as (1 - P_default) × repayment_amount — exceeds the principal of a loan plus any cost of required interbank borrowing.
 
 ## Project Structure
 
@@ -72,5 +74,27 @@ The goal is to explore — through simulation — the emergence of stabilizing a
 ├── Project.toml
 └── README.md
 ```
-## Getting 
+## More Detailed Simulation Mechanism
+
+### Event-Based Architecture
+
+The simulation operates in an event-driven manner. Each event is defined by a unique event_id, a trigger_event_id (used only for analyzing cascades of causally related events), a simulation time, and a set of event-specific parameters. Time in the simulation advances by processing events in a priority queue, ordered chronologically.
+
+A simulation run begins by pre-generating a scenario—typically a stream of random client requests for loans and deposits—and pushing those events into the event queue. Each event type (e.g., loan request, loan grant, loan repayment) has a dedicated execution method implemented in the event handler. Executing an event may trigger monetary flows, update balance sheets (assets and liabilities), and schedule future events. For instance, EventGrantClientLoan automatically schedules a corresponding EventRepaymentClientLoan at the maturity date of the loan.
+
+Once the queue is empty, the simulation ends. The main output consists of:
+-	a vector of executed events, from which metrics such as loan request acceptance rates can be computed,
+-	a vector of loans, allowing analysis of default rates and repayment behavior,
+-	a time series log of each bank’s financial state, including reserves, liabilities, and loan assets.
+
+These outputs enable post-simulation analysis of the system’s performance, risk exposure, and liquidity dynamics.
+
+### Loan System
+
+All loans in the simulation are implemented using a single unified structure: BulletLoan. This type of loan is repaid in full—principal plus interest—at maturity, with no intermediate payments. The same data structure is used to represent three different economic relationships:
+- Client loans, where a bank lends money to a client,
+-	Client deposits, interpreted as loans from clients to banks,
+-	Interbank loans, where one bank lends to another to cover liquidity needs.
+
+This design choice simplifies the logic by treating all cash flow commitments symmetrically, regardless of direction. Only the roles of lender and borrower change depending on the context.
 
