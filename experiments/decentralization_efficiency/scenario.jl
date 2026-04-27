@@ -16,51 +16,47 @@ function generate_demand_scenario(
     client_loan_amount_range::Tuple{Int, Int},
     client_loan_terms::Vector{Int},
     client_loan_default_prob_range::Tuple{Float64, Float64},
-    client_loan_arrival_rate::Float64,
+    client_loan_requests_per_day::Float64,
     client_deposit_amount_range::Tuple{Int, Int},
     client_deposit_terms::Vector{Int},
-    client_deposit_arrival_rate::Float64
+    client_deposit_requests_per_day::Float64
 )::Vector{DemandRequest}
     rng = MersenneTwister(scenario_seed)
     requests = DemandRequest[]
     client_id = 1
 
-    current_time_loan = 0
-    while current_time_loan <= simulation_duration_days
-        current_time_loan += rand(rng, Poisson(1 / client_loan_arrival_rate))
-        current_time_loan > simulation_duration_days && break
-
-        push!(
-            requests,
-            DemandRequest(
-                :client_loan,
-                current_time_loan,
-                client_id,
-                rand(rng, client_loan_amount_range[1]:client_loan_amount_range[2]),
-                rand(rng, client_loan_terms),
-                rand(rng, Uniform(client_loan_default_prob_range...))
+    for day in 1:simulation_duration_days
+        n_loan_requests = rand(rng, Poisson(client_loan_requests_per_day))
+        for _ in 1:n_loan_requests
+            push!(
+                requests,
+                DemandRequest(
+                    :client_loan,
+                    day,
+                    client_id,
+                    rand(rng, client_loan_amount_range[1]:client_loan_amount_range[2]),
+                    rand(rng, client_loan_terms),
+                    rand(rng, Uniform(client_loan_default_prob_range...))
+                )
             )
-        )
-        client_id += 1
-    end
+            client_id += 1
+        end
 
-    current_time_deposit = 0
-    while current_time_deposit <= simulation_duration_days
-        current_time_deposit += rand(rng, Poisson(1 / client_deposit_arrival_rate))
-        current_time_deposit > simulation_duration_days && break
-
-        push!(
-            requests,
-            DemandRequest(
-                :client_deposit,
-                current_time_deposit,
-                client_id,
-                rand(rng, client_deposit_amount_range[1]:client_deposit_amount_range[2]),
-                rand(rng, client_deposit_terms),
-                nothing
+        n_deposit_requests = rand(rng, Poisson(client_deposit_requests_per_day))
+        for _ in 1:n_deposit_requests
+            push!(
+                requests,
+                DemandRequest(
+                    :client_deposit,
+                    day,
+                    client_id,
+                    rand(rng, client_deposit_amount_range[1]:client_deposit_amount_range[2]),
+                    rand(rng, client_deposit_terms),
+                    nothing
+                )
             )
-        )
-        client_id += 1
+            client_id += 1
+        end
     end
 
     return sort(requests; by = request -> (request.time, request.client_id))

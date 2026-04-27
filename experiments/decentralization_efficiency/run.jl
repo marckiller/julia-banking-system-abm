@@ -146,10 +146,10 @@ function run_experiment()
             CLIENT_LOAN_AMOUNT_RANGE,
             CLIENT_LOAN_TERMS,
             CLIENT_LOAN_DEFAULT_PROB_RANGE,
-            CLIENT_LOAN_ARRIVAL_RATE,
+            CLIENT_LOAN_REQUESTS_PER_DAY,
             CLIENT_DEPOSIT_AMOUNT_RANGE,
             CLIENT_DEPOSIT_TERMS,
-            CLIENT_DEPOSIT_ARRIVAL_RATE
+            CLIENT_DEPOSIT_REQUESTS_PER_DAY
         )
 
         for num_banks in NUMBER_OF_BANKS
