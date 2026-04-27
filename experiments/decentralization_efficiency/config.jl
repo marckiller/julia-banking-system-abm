@@ -1,4 +1,11 @@
 const RNG_SEED = 42
+const SCENARIO_SEED_BASE = 10_000
+const RUN_SEED_BASE = 100_000
+const AVERAGING_N = 5
+
+const NUMBER_OF_BANKS = collect(1:10)
+const MIN_RESERVES_FACTORS = collect(0.1:0.1:0.9)
+const RESULTS_DIR = "results/decentralization_efficiency"
 
 # === Banks ===
 const TOTAL_INITIAL_RESERVES = 1_000_000_000
