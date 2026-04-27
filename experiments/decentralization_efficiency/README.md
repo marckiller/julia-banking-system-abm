@@ -28,8 +28,6 @@ The model is intentionally zero-intelligence:
 - interbank lending is used as a short-term liquidity mechanism,
 - defaults are stochastic and based on configured probabilities.
 
-These assumptions keep the experiment focused on structural liquidity effects.
-
 ## Experimental Design
 
 The experiment varies two main parameters:
@@ -63,81 +61,89 @@ The experiment shows how decentralization changes credit access, interbank borro
 
 ## Metrics
 
-Each simulation run records raw event counts and balance-sheet outcomes. The main derived metrics are:
+Each simulation run produces a replayable event log in memory. Metrics are computed from that log and aggregated by `NUM_BANKS` and `MIN_RESERVES_FACTOR`.
 
 | Metric | Meaning |
 | --- | --- |
-| `loan_acceptance_rate` | Share of client loan requests that were granted |
-| `deposit_default_rate` | Share of client deposits that defaulted at repayment |
-| `interbank_default_rate` | Share of interbank loans that defaulted |
-| `interbank_loan_count` | Number of granted interbank loans |
+| `loan_volume_acceptance_rate` | Share of requested client loan principal that was granted |
+| `deposit_volume_repay_rate` | Share of matured deposit repayment value paid on time |
+| `interbank_dependency_rate` | Granted interbank loans divided by granted client loans |
+| `liquidity_stress_volume_rate` | Share of requested client loan principal rejected |
 | `bank_net_growth_ratio` | Final total bank net worth divided by initial total bank net worth |
-| `liquidity_score` | Composite score combining credit availability, deposit safety, interbank stability, and system net worth |
+| `liquidity_score` | Composite visual score combining credit availability, deposit repayment, interbank repayment, loan stress, and bank net worth growth |
 
-The composite liquidity score is a visual summary. Individual metrics should be inspected alongside it.
+The composite liquidity score is a compact visual summary. Individual metrics should be inspected alongside it.
 
-## Expected Outputs
+## Output Files
 
-The analysis pipeline produces:
-
-- raw simulation results as CSV,
-- aggregated summary tables,
-- heatmaps over `NUM_BANKS` and `MIN_RESERVES_FACTOR`,
-- line plots showing how metrics change with the number of banks,
-- selected charts embedded in this README.
-
-Planned visual outputs:
+The experiment writes:
 
 ```text
-results/decentralization_efficiency/plots/
-├── heatmap_liquidity_score.png
-├── heatmap_loan_acceptance_rate.png
-├── heatmap_bank_net_growth_ratio.png
-├── heatmap_interbank_loan_count.png
-└── loan_acceptance_by_num_banks.png
+results/decentralization_efficiency_demo/
+├── metrics.csv
+├── runs.csv
+├── summary.csv
+└── plots/
 ```
 
-## Example Result Summary
+`metrics.csv` contains one row per simulation run. `runs.csv` stores seeds and parameter values. `summary.csv` averages metrics by `NUM_BANKS` and `MIN_RESERVES_FACTOR`. Full event logs are optional debug output.
 
-Embed the main generated figures here:
+## Results
 
-```markdown
-![Liquidity score heatmap](../../results/decentralization_efficiency/plots/heatmap_liquidity_score.png)
+The demo run uses:
 
-![Loan acceptance heatmap](../../results/decentralization_efficiency/plots/heatmap_loan_acceptance_rate.png)
+```text
+replications = 10
+NUM_BANKS = 1:10
+MIN_RESERVES_FACTOR = [0.1, 0.3, 0.5, 0.7, 0.9]
+simulation_duration_days = 720
+client_loan_requests_per_day = 20.0
+client_deposit_requests_per_day = 5.0
 ```
 
-Interpretation should focus on the visible trade-off:
+### Interbank Dependency
 
-- whether centralized liquidity improves loan acceptance,
-- whether decentralization increases reliance on interbank lending,
-- whether stricter reserve requirements reduce defaults at the cost of credit availability,
-- whether there is a robust middle region where liquidity and stability are both acceptable.
+![Interbank dependency rate](../../results/decentralization_efficiency_demo/plots/heatmap_interbank_dependency_rate.svg)
+
+Splitting the reserve base across more banks increases reliance on the interbank market. The effect grows quickly from one to five banks and then begins to flatten as the number of banks approaches ten.
+
+### Deposit Repayment
+
+![Deposit repayment rate](../../results/decentralization_efficiency_demo/plots/heatmap_deposit_volume_repay_rate.svg)
+
+Deposit repayment remains high overall, but repayment quality falls as the number of banks increases under low reserve requirements. Higher reserve factors reduce this deposit-side stress.
+
+### Liquidity Score
+
+![Liquidity score](../../results/decentralization_efficiency_demo/plots/heatmap_liquidity_score.svg)
+
+The composite score is highest in the centralized setting and declines as reserves are split across more banks, especially under low reserve requirements. In this zero-intelligence setup, centralized liquidity pooling dominates the coordination benefit of a larger interbank market.
+
+### Loan Volume Acceptance
+
+![Loan volume acceptance rate](../../results/decentralization_efficiency_demo/plots/heatmap_loan_volume_acceptance_rate.svg)
+
+Loan volume acceptance is relatively stable across the grid. The main effect of decentralization appears in liquidity coordination and repayment stress rather than in aggregate loan volume granted.
 
 ## How To Run
 
 From the repository root:
 
 ```bash
-julia --project=. experiments/decentralization_efficiency/run.jl
-julia --project=. experiments/decentralization_efficiency/plot.jl
+julia --project=. -e 'include("experiments/decentralization_efficiency/run.jl"); run_experiment(results_dir="results/decentralization_efficiency_demo", averaging_n=10, number_of_banks=collect(1:10), min_reserves_factors=[0.1,0.3,0.5,0.7,0.9], simulation_duration_days=720, client_loan_requests_per_day=20.0, client_deposit_requests_per_day=5.0)'
 ```
 
-The implementation is being refactored toward a reproducible experiment pipeline:
+```bash
+julia --project=. experiments/decentralization_efficiency/plot.jl results/decentralization_efficiency_demo
+```
 
-- deterministic runs from explicit seeds,
-- controlled scenario generation,
-- one output directory per experiment run,
-- safe metric calculations,
-- plots generated directly from saved result files.
+## Reproducibility
 
-## Refactoring Targets
+Each replication uses a deterministic aggregate demand scenario generated from `scenario_seed`. Each market configuration receives the same aggregate demand stream, with requests randomly routed to banks using a recorded `run_seed`.
 
-1. Use explicit scenario seeds for all runs.
-2. Separate scenario generation from simulation execution.
-3. Compare parameter settings on shared demand scenarios.
-4. Move metric calculation into a dedicated `metrics.jl`.
-5. Add safe ratio helpers for zero-denominator cases.
-6. Generate summary tables and plots from saved CSV files.
-7. Add experiment-level tests for reproducibility and metric validity.
-8. Embed final result figures in this README.
+The output files retain both seeds:
+
+```text
+runs.csv:
+run_id, replication_id, scenario_seed, run_seed, NUM_BANKS, MIN_RESERVES_FACTOR
+```
