@@ -6,6 +6,9 @@ const AVERAGING_N = 5
 const NUMBER_OF_BANKS = collect(1:10)
 const MIN_RESERVES_FACTORS = collect(0.1:0.1:0.9)
 const RESULTS_DIR = "results/decentralization_efficiency"
+const EVENTS_DIR = joinpath(RESULTS_DIR, "events")
+const SAVE_EVENTS = false
+const SAVE_EVENT_RUN_IDS = Int[]
 
 # === Banks ===
 const TOTAL_INITIAL_RESERVES = 1_000_000_000

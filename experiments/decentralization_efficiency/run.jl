@@ -6,6 +6,7 @@ using Random
 include("config.jl")
 include("utils.jl")
 include("scenario.jl")
+include("metrics.jl")
 
 function setup_simulation(
     num_banks::Int,
@@ -31,73 +32,6 @@ function setup_simulation(
     return sim
 end
 
-function total_bank_net(bank_state)
-    return bank_state.reserves + bank_state.total_loan_assets - bank_state.total_liabilities
-end
-
-function summarize_simulation(
-    sim::Simulation,
-    run_id::Int,
-    replication_id::Int,
-    scenario_seed::Int,
-    run_seed::Int,
-    num_banks::Int,
-    total_initial_reserves::Int,
-    min_reserves_factor::Float64,
-    r_client_loan::Float64,
-    r_bank_loan::Float64,
-    r_deposit::Float64,
-    simulation_duration_days::Int
-)
-    event_log = sim.event_log
-
-    n_client_loan_requests = count(x -> x isa EventRequestClientLoan, event_log)
-    n_client_loan_granted = count(x -> x isa EventGrantClientLoan, event_log)
-    n_client_deposit_requests = count(x -> x isa EventRequestClientDeposit, event_log)
-    n_client_deposit_granted = count(x -> x isa EventGrantClientDeposit, event_log)
-    n_interbank_loan_granted = count(x -> x isa EventGrantBankLoan, event_log)
-
-    interbank_loans = filter(x -> x.time_repay <= simulation_duration_days, sim.history_bank_loans)
-    client_loans = filter(x -> x.time_repay <= simulation_duration_days, sim.history_client_loans)
-    client_deposits = filter(x -> x.time_repay <= simulation_duration_days, sim.history_client_deposits)
-
-    bank_states = filter(row -> row.time <= simulation_duration_days, sim.history_banks)
-
-    total_initial_net = 0
-    total_final_net = 0
-    for id in keys(sim.banks)
-        bank_data = filter(row -> row.id == id, bank_states)
-        total_initial_net += total_bank_net(first(bank_data))
-        total_final_net += total_bank_net(last(bank_data))
-    end
-
-    return (
-        run_id = run_id,
-        replication_id = replication_id,
-        scenario_seed = scenario_seed,
-        run_seed = run_seed,
-        NUM_BANKS = num_banks,
-        TOTAL_INITIAL_RESERVES = total_initial_reserves,
-        MIN_RESERVES_FACTOR = min_reserves_factor,
-        R_CLIENT_LOAN = r_client_loan,
-        R_DEPOSIT = r_deposit,
-        R_BANK_LOAN = r_bank_loan,
-        n_client_loan_requests = n_client_loan_requests,
-        n_client_loan_granted = n_client_loan_granted,
-        n_client_deposit_requests = n_client_deposit_requests,
-        n_client_deposit_granted = n_client_deposit_granted,
-        n_interbank_loan_granted = n_interbank_loan_granted,
-        n_client_loans = length(client_loans),
-        n_client_deposits = length(client_deposits),
-        n_interbank_loans = length(interbank_loans),
-        n_defaulted_loans = count(x -> x.is_defaulted, client_loans),
-        n_defaulted_deposits = count(x -> x.is_defaulted, client_deposits),
-        n_defaulted_bank_loans = count(x -> x.is_defaulted, interbank_loans),
-        total_initial_banks_net = total_initial_net,
-        total_final_banks_net = total_final_net
-    )
-end
-
 function run_metadata(
     run_id::Int,
     replication_id::Int,
@@ -116,6 +50,16 @@ function run_metadata(
     )
 end
 
+function should_save_events(run_id::Int, save_events::Bool, save_event_run_ids::Vector{Int})::Bool
+    return save_events && (isempty(save_event_run_ids) || run_id in save_event_run_ids)
+end
+
+function save_run_events(run_id::Int, events::DataFrame, events_dir::String)
+    mkpath(events_dir)
+    path = joinpath(events_dir, "run_$(lpad(string(run_id), 6, '0')).csv")
+    CSV.write(path, events)
+end
+
 function events_dataframe(run_id::Int, events::Vector{AbstractEvent})::DataFrame
     flattened = map(flatten_event, events)
     for event in flattened
@@ -128,32 +72,42 @@ function run_seed(replication_id::Int, num_banks::Int, min_reserve_index::Int)::
     return RUN_SEED_BASE + 10_000 * replication_id + 100 * num_banks + min_reserve_index
 end
 
-function run_experiment()
-    mkpath(RESULTS_DIR)
+function run_experiment(;
+    results_dir::String = RESULTS_DIR,
+    events_dir::String = joinpath(results_dir, "events"),
+    averaging_n::Int = AVERAGING_N,
+    number_of_banks::Vector{Int} = NUMBER_OF_BANKS,
+    min_reserves_factors::Vector{Float64} = MIN_RESERVES_FACTORS,
+    simulation_duration_days::Int = SIMULATION_DURATION_DAYS,
+    client_loan_requests_per_day::Float64 = CLIENT_LOAN_REQUESTS_PER_DAY,
+    client_deposit_requests_per_day::Float64 = CLIENT_DEPOSIT_REQUESTS_PER_DAY,
+    save_events::Bool = SAVE_EVENTS,
+    save_event_run_ids::Vector{Int} = SAVE_EVENT_RUN_IDS
+)
+    mkpath(results_dir)
 
-    results = DataFrame()
     runs = DataFrame()
-    events = DataFrame()
+    metrics = DataFrame()
 
     run_id = 1
-    total_runs = AVERAGING_N * length(NUMBER_OF_BANKS) * length(MIN_RESERVES_FACTORS)
+    total_runs = averaging_n * length(number_of_banks) * length(min_reserves_factors)
 
-    for replication_id in 1:AVERAGING_N
+    for replication_id in 1:averaging_n
         scenario_seed = SCENARIO_SEED_BASE + replication_id
         scenario = generate_demand_scenario(
             scenario_seed,
-            SIMULATION_DURATION_DAYS,
+            simulation_duration_days,
             CLIENT_LOAN_AMOUNT_RANGE,
             CLIENT_LOAN_TERMS,
             CLIENT_LOAN_DEFAULT_PROB_RANGE,
-            CLIENT_LOAN_REQUESTS_PER_DAY,
+            client_loan_requests_per_day,
             CLIENT_DEPOSIT_AMOUNT_RANGE,
             CLIENT_DEPOSIT_TERMS,
-            CLIENT_DEPOSIT_REQUESTS_PER_DAY
+            client_deposit_requests_per_day
         )
 
-        for num_banks in NUMBER_OF_BANKS
-            for (min_reserve_index, min_reserve) in enumerate(MIN_RESERVES_FACTORS)
+        for num_banks in number_of_banks
+            for (min_reserve_index, min_reserve) in enumerate(min_reserves_factors)
                 current_run_seed = run_seed(replication_id, num_banks, min_reserve_index)
                 println(
                     "Running $run_id/$total_runs: replication=$replication_id, " *
@@ -176,36 +130,25 @@ function run_experiment()
                 log_bank_states!(sim)
                 run_simulation!(sim)
 
-                push!(
-                    results,
-                    summarize_simulation(
-                        sim,
-                        run_id,
-                        replication_id,
-                        scenario_seed,
-                        current_run_seed,
-                        num_banks,
-                        TOTAL_INITIAL_RESERVES,
-                        min_reserve,
-                        R_CLIENT_LOAN,
-                        R_BANK_LOAN,
-                        R_DEPOSIT,
-                        SIMULATION_DURATION_DAYS
-                    ),
-                    cols = :union
-                )
+                metadata = run_metadata(run_id, replication_id, scenario_seed, current_run_seed, num_banks, min_reserve)
+                run_events = events_dataframe(run_id, sim.event_log)
+                run_metrics = compute_run_metrics(run_id, run_events)
 
                 push!(
                     runs,
-                    run_metadata(run_id, replication_id, scenario_seed, current_run_seed, num_banks, min_reserve),
+                    metadata,
                     cols = :union
                 )
 
-                events = vcat(events, events_dataframe(run_id, sim.event_log); cols = :union)
+                push!(metrics, merge(metadata, run_metrics), cols = :union)
+
+                if should_save_events(run_id, save_events, save_event_run_ids)
+                    save_run_events(run_id, run_events, events_dir)
+                end
 
                 if run_id % 20 == 0
-                    CSV.write(joinpath(RESULTS_DIR, "results_tmp.csv"), results)
-                    CSV.write(joinpath(RESULTS_DIR, "runs_tmp.csv"), runs)
+                    CSV.write(joinpath(results_dir, "metrics_tmp.csv"), metrics)
+                    CSV.write(joinpath(results_dir, "runs_tmp.csv"), runs)
                 end
 
                 run_id += 1
@@ -213,13 +156,15 @@ function run_experiment()
         end
     end
 
-    CSV.write(joinpath(RESULTS_DIR, "results.csv"), results)
-    CSV.write(joinpath(RESULTS_DIR, "runs.csv"), runs)
-    CSV.write(joinpath(RESULTS_DIR, "events.csv"), events)
+    summary = summarize_metrics(metrics)
+
+    CSV.write(joinpath(results_dir, "metrics.csv"), metrics)
+    CSV.write(joinpath(results_dir, "summary.csv"), summary)
+    CSV.write(joinpath(results_dir, "runs.csv"), runs)
 
     println("Experiment completed.")
-    println("Results saved to $(RESULTS_DIR)")
-    println("Total number of runs: $(nrow(results))")
+    println("Results saved to $(results_dir)")
+    println("Total number of runs: $(nrow(metrics))")
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

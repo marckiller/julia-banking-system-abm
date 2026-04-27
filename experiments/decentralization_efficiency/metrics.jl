@@ -3,7 +3,9 @@ using CSV
 using DataFrames
 using Statistics
 
-include("config.jl")
+if !isdefined(@__MODULE__, :RESULTS_DIR)
+    include("config.jl")
+end
 
 const EVENT_CLIENT_LOAN_REQUESTED = "EventRequestClientLoan"
 const EVENT_CLIENT_LOAN_GRANTED = "EventGrantClientLoan"
