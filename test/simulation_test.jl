@@ -30,3 +30,46 @@ using DataFrames
     @test sim.history_banks[sim.history_banks.id .== 2, :reserves][1] == 200_000
 
 end
+
+@testset "Simulation Event Log Tests" begin
+    sim = create_simulation()
+    add_bank!(sim, 100_000, 0.1, 0.05, 0.02, 0.01)
+
+    request = EventRequestClientLoan(
+        get_event_id!(sim),
+        nothing,
+        1,
+        nothing,
+        1,
+        1_000,
+        1,
+        0.0
+    )
+    schedule_event!(sim, request)
+    run_simulation!(sim)
+
+    @test any(e -> e isa EventBankCreated, sim.event_log)
+    @test any(e -> e isa EventRequestClientLoan, sim.event_log)
+    @test any(e -> e isa EventGrantClientLoan, sim.event_log)
+    @test any(e -> e isa EventRepaymentClientLoan, sim.event_log)
+    @test any(e -> e isa EventClientLoanRepaid, sim.event_log)
+    @test !any(e -> e isa EventClientLoanDefaulted, sim.event_log)
+
+    request_index = findfirst(e -> e isa EventRequestClientLoan, sim.event_log)
+    grant_index = findfirst(e -> e isa EventGrantClientLoan, sim.event_log)
+    repayment_due_index = findfirst(e -> e isa EventRepaymentClientLoan, sim.event_log)
+    repayment_index = findfirst(e -> e isa EventClientLoanRepaid, sim.event_log)
+    @test request_index < grant_index < repayment_due_index < repayment_index
+
+    grant = only(filter(e -> e isa EventGrantClientLoan, sim.event_log))
+    repayment = only(filter(e -> e isa EventClientLoanRepaid, sim.event_log))
+    @test repayment.loan_id == grant.loan_id
+    @test repayment.bank_id == grant.bank_id
+
+    replayed_states = replay_bank_states(sim.event_log)
+    final_replayed = last(filter(row -> row.id == 1, replayed_states))
+    final_bank = sim.banks[1]
+    @test final_replayed.reserves == final_bank.reserves
+    @test final_replayed.total_liabilities == final_bank.total_liabilities
+    @test final_replayed.total_loan_assets == final_bank.total_loan_assets
+end

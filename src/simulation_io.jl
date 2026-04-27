@@ -2,93 +2,17 @@ using CSV
 using DataFrames
 
 function flatten_event(event::AbstractEvent)
-
-    base = Dict(
-        :event_id => event.event_id,
-        :trigger_event_id => event.trigger_event_id,
-        :time => event.time,
-        :event_type => string(nameof(typeof(event)))
-    )
-
-    if event isa EventRepaymentClientLoan
-        base[:loan_id] = event.loan_id
-        base[:default_probability] = event.default_probability
-
-    elseif event isa EventRepaymentBankLoan
-        base[:loan_id] = event.loan_id
-
-    elseif event isa EventRepaymentDeposit
-        base[:deposit_id] = event.deposit_id
-
-    elseif event isa EventGrantClientLoan
-        base[:client_id] = event.client_id
-        base[:bank_id] = event.bank_id
-        base[:principal] = event.principal
-        base[:term] = event.term
-        base[:annual_interest_rate] = event.annual_interest_rate
-        base[:default_probability] = event.default_probability
-
-    elseif event isa EventGrantClientDeposit
-        base[:client_id] = event.client_id
-        base[:bank_id] = event.bank_id
-        base[:principal] = event.principal
-        base[:term] = event.term
-        base[:annual_interest_rate] = event.annual_interest_rate
-
-    elseif event isa EventGrantBankLoan
-        base[:bank_borrower_id] = event.bank_borrower_id
-        base[:bank_lender_id] = event.bank_lender_id
-        base[:principal] = event.principal
-        base[:term] = event.term
-        base[:annual_interest_rate] = event.annual_interest_rate
-
-    elseif event isa EventRequestClientDeposit
-        base[:client_id] = event.client_id
-        base[:bank_id] = event.bank_id
-        base[:principal] = event.principal
-        base[:term] = event.term
-    
-    elseif event isa EventRequestClientLoan
-        base[:client_id] = event.client_id
-        base[:bank_id] = event.bank_id
-        base[:principal] = event.principal
-        base[:term] = event.term
-        base[:default_probability] = event.default_probability
-
-    elseif event isa EventRequestBankLoan
-        base[:bank_borrower_id] = event.bank_borrower_id
-        base[:bank_lender_id] = event.bank_lender_id
-        base[:principal] = event.principal
-        base[:term] = event.term
+    flattened = Dict{Symbol, Any}(:event_type => string(nameof(typeof(event))))
+    for field in fieldnames(typeof(event))
+        flattened[field] = getfield(event, field)
     end
-
-    return base
+    return flattened
 end
 
 function reconstruct_event(dict::Dict{Symbol, Any})::AbstractEvent
-    T = getfield(Main, Symbol(dict[:event_type]))
-
-    if T == EventRepaymentClientLoan
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:loan_id], dict[:default_probability])
-    elseif T == EventRepaymentBankLoan
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:loan_id])
-    elseif T == EventRepaymentDeposit
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:deposit_id])
-    elseif T == EventGrantClientLoan
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:client_id], dict[:bank_id], dict[:principal], dict[:term], dict[:annual_interest_rate], dict[:default_probability])
-    elseif T == EventGrantClientDeposit
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:client_id], dict[:bank_id], dict[:principal], dict[:term], dict[:annual_interest_rate])
-    elseif T == EventGrantBankLoan
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:bank_borrower_id], dict[:bank_lender_id], dict[:principal], dict[:term], dict[:annual_interest_rate])
-    elseif T == EventRequestClientDeposit
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:client_id], dict[:bank_id], dict[:principal], dict[:term])
-    elseif T == EventRequestClientLoan
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:client_id], dict[:bank_id], dict[:principal], dict[:term], dict[:default_probability])
-    elseif T == EventRequestBankLoan
-        return T(dict[:event_id], dict[:trigger_event_id], dict[:time], dict[:bank_borrower_id], dict[:bank_lender_id], dict[:principal], dict[:term])
-    else
-        error("Unknown event type: $(dict[:event_type])")
-    end
+    T = getfield(@__MODULE__, Symbol(dict[:event_type]))
+    values = map(field -> dict[field], fieldnames(T))
+    return T(values...)
 end
 
 function keys_union(dicts::Vector{Dict{Symbol, Any}})
@@ -174,4 +98,3 @@ function load_banks_states_from_csv(path::String)::DataFrame
     end
     return df
 end
-
