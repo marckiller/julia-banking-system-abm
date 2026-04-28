@@ -25,12 +25,23 @@ using Pkg
 Pkg.instantiate()
 ```
 
-### 4. Run an experiment
+### 4. Run the demo
 
 ```bash
 julia --project=. experiments/demo/run.jl
 ```
-This demo runs a full simulation of a small multi-bank system using predefined parameters from the config.jl file. Feel free to adjust any parameters to suit your own experimental needs or scenarios.
+
+The demo runs one fixed simulation scenario and writes:
+
+```text
+results/demo/
+├── events.csv
+├── bank_states.csv
+├── metrics.csv
+└── plots/
+```
+
+Open `results/demo/plots/index.html` to inspect the generated plots: bank reserves over time, client loan decisions, and default events.
 
 ## Project motivation
 
@@ -97,4 +108,3 @@ All loans in the simulation are implemented using a single unified structure: Bu
 -	Interbank loans, where one bank lends to another to cover liquidity needs.
 
 This design choice simplifies the logic by treating all cash flow commitments symmetrically, regardless of direction. Only the roles of lender and borrower change depending on the context.
-
