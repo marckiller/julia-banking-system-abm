@@ -1,256 +1,180 @@
 using BankSim
-using DataStructures
 using DataFrames
 using CSV
+using Random
+
 include("config.jl")
 include("utils.jl")
-using Random
-#Random.seed!(RNG_SEED)
-
-    # This experiment demonstrates that having multiple banks (instead of a single large one)
-    # can improve liquidity and increase the likelihood of satisfying client demand for
-    # deposits and loans.
-
-    # Procedure:
-    # - A fixed total reserve (e.g., 1,000,000) is evenly distributed among B banks.
-    # - For each B in [1,10], we run the simulation N times (e.g., N = 5).
-    # - In each simulation, we record the percentage of client loan requests that are accepted.
-    # - The result is a plot showing the average acceptance rate of client loans 
-    #   as a function of the number of banks in the system.
-    # As an addition we compare results in different minimum reserve regime
+include("scenario.jl")
+include("metrics.jl")
 
 function setup_simulation(
-    NUM_BANKS::Int,
-    TOTAL_INITIAL_RESERVES::Int,
-    MIN_RESERVES_FACTOR::Float64,
-    R_CLIENT_LOAN::Float64,
-    R_BANK_LOAN::Float64,
-    R_DEPOSIT::Float64,
-    CLIENT_LOAN_AMOUNT_RANGE::Tuple{Int, Int},
-    CLIENT_LOAN_TERMS::Vector{Int},
-    CLIENT_LOAN_DEFAULT_PROB_RANGE::Tuple{Float64, Float64},
-    CLIENT_LOAN_ARRIVAL_RATE::Float64,
-    CLIENT_DEPOSIT_AMOUNT_RANGE::Tuple{Int, Int},
-    CLIENT_DEPOSIT_TERMS::Vector{Int},
-    CLIENT_DEPOSIT_ARRIVAL_RATE::Float64,
-    INTERBANK_LOAN_TERM::Int,
-    SIMULATION_DURATION_DAYS::Int
+    num_banks::Int,
+    total_initial_reserves::Int,
+    min_reserves_factor::Float64,
+    r_client_loan::Float64,
+    r_bank_loan::Float64,
+    r_deposit::Float64,
+    interbank_loan_term::Int,
+    scenario::Vector{DemandRequest},
+    run_seed::Int
 )::Simulation
+    Random.seed!(run_seed)
+
     sim = create_simulation()
-    reserve_split = generate_initial_reserves(TOTAL_INITIAL_RESERVES, NUM_BANKS)
-    sim.interbank_loaning_term = INTERBANK_LOAN_TERM
+    sim.interbank_loaning_term = interbank_loan_term
 
-    for reserve in reserve_split
-        add_bank!(sim, reserve, MIN_RESERVES_FACTOR, R_CLIENT_LOAN, R_BANK_LOAN, R_DEPOSIT)
+    for reserve in generate_initial_reserves(total_initial_reserves, num_banks)
+        add_bank!(sim, reserve, min_reserves_factor, r_client_loan, r_bank_loan, r_deposit)
     end
 
-    # === event scheduling as random process ===
-    current_time_loan = 0
-    while current_time_loan ≤ SIMULATION_DURATION_DAYS
-        current_time_loan += rand(Poisson(1 / CLIENT_LOAN_ARRIVAL_RATE))
-        if current_time_loan > SIMULATION_DURATION_DAYS
-            break
-        end
-        bank_id = rand(1:NUM_BANKS)
-        principal = rand(CLIENT_LOAN_AMOUNT_RANGE[1]:CLIENT_LOAN_AMOUNT_RANGE[2])
-        term = rand(CLIENT_LOAN_TERMS)
-        default_prob = rand(Uniform(CLIENT_LOAN_DEFAULT_PROB_RANGE...))
-        event = EventRequestClientLoan(
-            get_event_id!(sim),
-            nothing,
-            current_time_loan,
-            nothing,
-            bank_id,
-            principal,
-            term,
-            default_prob
-        )
-        schedule_event!(sim, event)
-    end
-
-    current_time_deposit = 0
-    while current_time_deposit ≤ SIMULATION_DURATION_DAYS
-        current_time_deposit += rand(Poisson(1 / CLIENT_DEPOSIT_ARRIVAL_RATE))
-        if current_time_deposit > SIMULATION_DURATION_DAYS
-            break
-        end
-        bank_id = rand(1:NUM_BANKS)
-        principal = rand(CLIENT_DEPOSIT_AMOUNT_RANGE[1]:CLIENT_DEPOSIT_AMOUNT_RANGE[2])
-        term = rand(CLIENT_DEPOSIT_TERMS)
-        event = EventRequestClientDeposit(
-            get_event_id!(sim),
-            nothing,
-            current_time_deposit,
-            nothing,
-            bank_id,
-            principal,
-            term
-        )
-        schedule_event!(sim, event)
-    end
+    route_scenario!(sim, scenario, num_banks)
     return sim
 end
 
-function run_single_simulation(
-    NUM_BANKS::Int,
-    TOTAL_INITIAL_RESERVES::Int,
-    MIN_RESERVES_FACTOR::Float64,
-    R_CLIENT_LOAN::Float64,
-    R_BANK_LOAN::Float64,
-    R_DEPOSIT::Float64,
-    CLIENT_LOAN_AMOUNT_RANGE::Tuple{Int, Int},
-    CLIENT_LOAN_TERMS::Vector{Int},
-    CLIENT_LOAN_DEFAULT_PROB_RANGE::Tuple{Float64, Float64},
-    CLIENT_LOAN_ARRIVAL_RATE::Float64,
-    CLIENT_DEPOSIT_AMOUNT_RANGE::Tuple{Int, Int},
-    CLIENT_DEPOSIT_TERMS::Vector{Int},
-    CLIENT_DEPOSIT_ARRIVAL_RATE::Float64,
-    INTERBANK_LOAN_TERM::Int,
-    SIMULATION_DURATION_DAYS::Int
+function run_metadata(
+    run_id::Int,
+    replication_id::Int,
+    scenario_seed::Int,
+    run_seed::Int,
+    num_banks::Int,
+    min_reserves_factor::Float64
 )
-    sim = setup_simulation(
-        NUM_BANKS,
-        TOTAL_INITIAL_RESERVES,
-        MIN_RESERVES_FACTOR,
-        R_CLIENT_LOAN,
-        R_BANK_LOAN,
-        R_DEPOSIT,
-        CLIENT_LOAN_AMOUNT_RANGE,
-        CLIENT_LOAN_TERMS,
-        CLIENT_LOAN_DEFAULT_PROB_RANGE,
-        CLIENT_LOAN_ARRIVAL_RATE,
-        CLIENT_DEPOSIT_AMOUNT_RANGE,
-        CLIENT_DEPOSIT_TERMS,
-        CLIENT_DEPOSIT_ARRIVAL_RATE,
-        INTERBANK_LOAN_TERM,
-        SIMULATION_DURATION_DAYS
-    )
-
-    log_bank_states!(sim)
-    run_simulation!(sim)
-
-    n_client_loan_requests = count(x -> x isa EventRequestClientLoan, sim.executed_events)
-    n_client_loan_granted = count(x -> x isa EventGrantClientLoan, sim.executed_events)
-    n_client_deposit_requests = count(x -> x isa EventRequestClientDeposit , sim.executed_events)
-    n_client_deposit_granted = count(x -> x isa  EventGrantClientDeposit , sim.executed_events)
-    n_interbank_loan_granted = count(x -> x isa EventGrantBankLoan, sim.executed_events)
-
-    #loan statistics (repay_time cutoff at simulation duration)
-    interbank_loans = sim.history_bank_loans
-    interbank_loans = filter(x -> x.time_repay <= SIMULATION_DURATION_DAYS, interbank_loans)
-
-    client_loans = sim.history_client_loans
-    client_loans = filter(x -> x.time_repay <= SIMULATION_DURATION_DAYS, client_loans)
-
-    client_deposits = sim.history_client_deposits
-    client_deposits = filter(x -> x.time_repay <= SIMULATION_DURATION_DAYS, client_deposits)
-
-    defaulted_loans = filter(x -> x.is_defaulted, client_loans)
-    defaulted_deposits = filter(x -> x.is_defaulted, client_deposits)
-    defaulted_bank_loans = filter(x -> x.is_defaulted, interbank_loans)
-    
-    #bank states 
-    bank_states = sim.history_banks
-    bank_states = filter(row -> row.time <= SIMULATION_DURATION_DAYS, bank_states)
-
-    total_initial_net = 0
-    total_final_net = 0
-    for (id, bank) in sim.banks
-        bank_data = filter(row -> row.id == id, bank_states)
-        total_initial_net += first(bank_data).reserves + first(bank_data).total_loan_assets - first(bank_data).total_liabilities
-        total_final_net += last(bank_data).reserves + last(bank_data).total_loan_assets - last(bank_data).total_liabilities
-    end
-
-    return Dict(
-        "RANDOM_SEED" => RNG_SEED,#
-        "NUM_BANKS" => NUM_BANKS,#
-        "TOTAL_INITIAL_RESERVES" => TOTAL_INITIAL_RESERVES,#
-        "MIN_RESERVES_FACTOR" => MIN_RESERVES_FACTOR,#
-        "R_CLIENT_LOAN" => R_CLIENT_LOAN,#
-        "R_DEPOSIT" => R_DEPOSIT,#
-        "R_BANK_LOAN" => R_BANK_LOAN,#
-        "n_client_loan_requests" => n_client_loan_requests,#
-        "n_client_loan_granted" => n_client_loan_granted,#
-        "n_client_deposit_requests" => n_client_deposit_requests,#
-        "n_client_deposit_granted" => n_client_deposit_granted,#
-        "n_interbank_loan_granted" => n_interbank_loan_granted,#
-        "n_client_loans" => length(client_loans),#
-        "n_client_deposits" => length(client_deposits),#
-        "n_interbank_loans" => length(interbank_loans),#
-        "n_defaulted_loans" => length(defaulted_loans),#
-        "n_defaulted_deposits" => length(defaulted_deposits),#
-        "n_defaulted_bank_loans" => length(defaulted_bank_loans),#
-        "total_initial_banks_net" => total_initial_net,#
-        "total_final_banks_net" => total_final_net
+    return (
+        run_id = run_id,
+        replication_id = replication_id,
+        scenario_seed = scenario_seed,
+        run_seed = run_seed,
+        NUM_BANKS = num_banks,
+        MIN_RESERVES_FACTOR = min_reserves_factor
     )
 end
 
-function run_experiment()
+function should_save_events(run_id::Int, save_events::Bool, save_event_run_ids::Vector{Int})::Bool
+    return save_events && (isempty(save_event_run_ids) || run_id in save_event_run_ids)
+end
 
-    results = DataFrame(
-        RANDOM_SEED = Int[],
-        NUM_BANKS = Int[],
-        TOTAL_INITIAL_RESERVES = Int[],
-        MIN_RESERVES_FACTOR = Float64[],
-        R_CLIENT_LOAN = Float64[],
-        R_DEPOSIT = Float64[],
-        R_BANK_LOAN = Float64[],
-        n_client_loan_requests = Int[],
-        n_client_loan_granted = Int[],
-        n_client_deposit_requests = Int[],
-        n_client_deposit_granted = Int[],
-        n_interbank_loan_granted = Int[],
-        n_client_loans = Int[],
-        n_client_deposits = Int[],
-        n_interbank_loans = Int[],
-        n_defaulted_loans = Int[],
-        n_defaulted_deposits = Int[],
-        n_defaulted_bank_loans = Int[],
-        total_initial_banks_net = Float64[],
-        total_final_banks_net = Float64[]
-    )
+function save_run_events(run_id::Int, events::DataFrame, events_dir::String)
+    mkpath(events_dir)
+    path = joinpath(events_dir, "run_$(lpad(string(run_id), 6, '0')).csv")
+    CSV.write(path, events)
+end
 
-    number_of_banks = [1,2,3,4,5,6,7,8,9,10]
-    min_reserves = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    averaging_n = 5
+function events_dataframe(run_id::Int, events::Vector{AbstractEvent})::DataFrame
+    flattened = map(flatten_event, events)
+    for event in flattened
+        event[:run_id] = run_id
+    end
+    return flattened_events_to_dataframe(flattened)
+end
 
-    for num_banks in number_of_banks
-        for min_reserve in min_reserves
-            for i in 1:averaging_n
-                println("Running simulation with $num_banks banks and min reserve factor $min_reserve (run $i/$averaging_n)")
-                result = run_single_simulation(
+function run_seed(replication_id::Int, num_banks::Int, min_reserve_index::Int)::Int
+    return RUN_SEED_BASE + 10_000 * replication_id + 100 * num_banks + min_reserve_index
+end
+
+function run_experiment(;
+    results_dir::String = RESULTS_DIR,
+    events_dir::String = joinpath(results_dir, "events"),
+    averaging_n::Int = AVERAGING_N,
+    number_of_banks::Vector{Int} = NUMBER_OF_BANKS,
+    min_reserves_factors::Vector{Float64} = MIN_RESERVES_FACTORS,
+    simulation_duration_days::Int = SIMULATION_DURATION_DAYS,
+    analysis_start_day::Int = ANALYSIS_START_DAY,
+    analysis_end_day::Int = ANALYSIS_END_DAY,
+    client_loan_requests_per_day::Float64 = CLIENT_LOAN_REQUESTS_PER_DAY,
+    client_deposit_requests_per_day::Float64 = CLIENT_DEPOSIT_REQUESTS_PER_DAY,
+    save_events::Bool = SAVE_EVENTS,
+    save_event_run_ids::Vector{Int} = SAVE_EVENT_RUN_IDS
+)
+    mkpath(results_dir)
+
+    runs = DataFrame()
+    metrics = DataFrame()
+
+    run_id = 1
+    total_runs = averaging_n * length(number_of_banks) * length(min_reserves_factors)
+    println("Analysis window: days $(analysis_start_day)-$(analysis_end_day)")
+
+    for replication_id in 1:averaging_n
+        scenario_seed = SCENARIO_SEED_BASE + replication_id
+        scenario = generate_demand_scenario(
+            scenario_seed,
+            simulation_duration_days,
+            CLIENT_LOAN_AMOUNT_RANGE,
+            CLIENT_LOAN_TERMS,
+            CLIENT_LOAN_DEFAULT_PROB_RANGE,
+            client_loan_requests_per_day,
+            CLIENT_DEPOSIT_AMOUNT_RANGE,
+            CLIENT_DEPOSIT_TERMS,
+            client_deposit_requests_per_day
+        )
+
+        for num_banks in number_of_banks
+            for (min_reserve_index, min_reserve) in enumerate(min_reserves_factors)
+                current_run_seed = run_seed(replication_id, num_banks, min_reserve_index)
+                println(
+                    "Running $run_id/$total_runs: replication=$replication_id, " *
+                    "banks=$num_banks, min_reserve=$min_reserve, " *
+                    "scenario_seed=$scenario_seed, run_seed=$current_run_seed"
+                )
+
+                sim = setup_simulation(
                     num_banks,
                     TOTAL_INITIAL_RESERVES,
                     min_reserve,
                     R_CLIENT_LOAN,
                     R_BANK_LOAN,
                     R_DEPOSIT,
-                    CLIENT_LOAN_AMOUNT_RANGE,
-                    CLIENT_LOAN_TERMS,
-                    CLIENT_LOAN_DEFAULT_PROB_RANGE,
-                    CLIENT_LOAN_ARRIVAL_RATE,
-                    CLIENT_DEPOSIT_AMOUNT_RANGE,
-                    CLIENT_DEPOSIT_TERMS,
-                    CLIENT_DEPOSIT_ARRIVAL_RATE,
                     INTERBANK_LOAN_TERM,
-                    SIMULATION_DURATION_DAYS
+                    scenario,
+                    current_run_seed
                 )
-                push!(results, result)
 
-                if i % 20 == 0
-                    CSV.write("results/decentralization_efficiency/results_tmp.csv", results)
-                    println("Completed $i runs for $num_banks banks with min reserve factor $min_reserve")                  
+                log_bank_states!(sim)
+                run_simulation!(sim)
+
+                metadata = run_metadata(run_id, replication_id, scenario_seed, current_run_seed, num_banks, min_reserve)
+                run_events = events_dataframe(run_id, sim.event_log)
+                run_metrics = compute_run_metrics(
+                    run_id,
+                    run_events;
+                    analysis_start_day = analysis_start_day,
+                    analysis_end_day = analysis_end_day
+                )
+
+                push!(
+                    runs,
+                    metadata,
+                    cols = :union
+                )
+
+                push!(metrics, merge(metadata, run_metrics), cols = :union)
+
+                if should_save_events(run_id, save_events, save_event_run_ids)
+                    save_run_events(run_id, run_events, events_dir)
                 end
+
+                if run_id % 20 == 0
+                    CSV.write(joinpath(results_dir, "metrics_tmp.csv"), metrics)
+                    CSV.write(joinpath(results_dir, "runs_tmp.csv"), runs)
+                end
+
+                run_id += 1
             end
         end
     end
 
-    CSV.write("results/decentralization_efficiency/results.csv", results)
-    println("Results saved to results.csv")
-    println("Experiment completed.")
-    println("Total number of runs: $(nrow(results))")
+    summary = summarize_metrics(metrics)
 
+    CSV.write(joinpath(results_dir, "metrics.csv"), metrics)
+    CSV.write(joinpath(results_dir, "summary.csv"), summary)
+    CSV.write(joinpath(results_dir, "runs.csv"), runs)
+
+    println("Experiment completed.")
+    println("Results saved to $(results_dir)")
+    println("Total number of runs: $(nrow(metrics))")
 end
 
-run_experiment()
-
+if abspath(PROGRAM_FILE) == @__FILE__
+    run_experiment()
+end

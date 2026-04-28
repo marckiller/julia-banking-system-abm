@@ -15,6 +15,7 @@ mutable struct Simulation
     
     scheduled_events::PriorityQueue{AbstractEvent, Int}
     executed_events::Vector{AbstractEvent}
+    event_log::Vector{AbstractEvent}
 
     #bankin system parameters
     interbank_loaning_term::Int
@@ -72,6 +73,7 @@ function create_simulation(
         Dict{Int, Loan}(),  # client_deposits
         scheduled_events,
         AbstractEvent[],    # executed_events
+        AbstractEvent[],    # event_log
         interbank_loaning_term,
         Loan[],             # history_client_loans
         Loan[],             # history_bank_loans
@@ -96,9 +98,23 @@ function create_simulation(
             EventGrantBankLoan,
             EventGrantClientLoan,
             EventGrantClientDeposit,
-            EventRequestBankLoan
+            EventRequestBankLoan,
+            EventRejectClientLoan,
+            EventRejectBankLoan,
+            EventClientLoanRepaid,
+            EventClientLoanDefaulted,
+            EventDepositRepaid,
+            EventDepositDefaulted,
+            EventBankLoanRepaid,
+            EventBankLoanDefaulted,
+            EventBankCreated
        ]
     )
+end
+
+function record_event!(simulation::Simulation, event::AbstractEvent)
+    push!(simulation.executed_events, event)
+    push!(simulation.event_log, event)
 end
 
 function log_bank_states!(sim::Simulation)
@@ -121,5 +137,19 @@ function add_bank!(sim::Simulation, initial_reserves::Int, min_reserves::Float64
     bank_id = get_bank_id!(sim)
     bank = create_bank(bank_id, initial_reserves, min_reserves, R_client_loan, R_bank_loan, R_deposit)
     sim.banks[bank_id] = bank
+    record_event!(
+        sim,
+        EventBankCreated(
+            get_event_id!(sim),
+            nothing,
+            sim.time,
+            bank_id,
+            initial_reserves,
+            min_reserves,
+            R_client_loan,
+            R_bank_loan,
+            R_deposit
+        )
+    )
     return bank
 end

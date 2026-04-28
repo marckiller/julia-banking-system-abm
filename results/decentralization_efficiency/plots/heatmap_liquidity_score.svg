@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="792" height="432" viewBox="0 0 792 432">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="396.0" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Liquidity score</text>
+<text x="396.0" y="414" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">Number of banks</text>
+<text x="396.0" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Analysis window: days 180-720</text>
+<text x="18" y="209.0" text-anchor="middle" transform="rotate(-90 18 209.0)" font-family="Arial, sans-serif" font-size="12" fill="#374151">Minimum reserve factor</text>
+<text x="137.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">1</text>
+<text x="203.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">2</text>
+<text x="269.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">3</text>
+<text x="335.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">4</text>
+<text x="401.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">5</text>
+<text x="467.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">6</text>
+<text x="533.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">7</text>
+<text x="599.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">8</text>
+<text x="665.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">9</text>
+<text x="731.0" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#374151">10</text>
+<text x="90" y="97.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#374151">0.100</text>
+<rect x="104" y="64" width="66" height="58" fill="#fae626" stroke="#ffffff" stroke-width="1"/>
+<text x="137.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.574</text>
+<rect x="170" y="64" width="66" height="58" fill="#339582" stroke="#ffffff" stroke-width="1"/>
+<text x="203.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.500</text>
+<rect x="236" y="64" width="66" height="58" fill="#316d8d" stroke="#ffffff" stroke-width="1"/>
+<text x="269.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.475</text>
+<rect x="302" y="64" width="66" height="58" fill="#355382" stroke="#ffffff" stroke-width="1"/>
+<text x="335.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.461</text>
+<rect x="368" y="64" width="66" height="58" fill="#393c75" stroke="#ffffff" stroke-width="1"/>
+<text x="401.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.449</text>
+<rect x="434" y="64" width="66" height="58" fill="#3c2b6b" stroke="#ffffff" stroke-width="1"/>
+<text x="467.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.440</text>
+<rect x="500" y="64" width="66" height="58" fill="#3f1b63" stroke="#ffffff" stroke-width="1"/>
+<text x="533.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.433</text>
+<rect x="566" y="64" width="66" height="58" fill="#41125d" stroke="#ffffff" stroke-width="1"/>
+<text x="599.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.428</text>
+<rect x="632" y="64" width="66" height="58" fill="#420a59" stroke="#ffffff" stroke-width="1"/>
+<text x="665.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.424</text>
+<rect x="698" y="64" width="66" height="58" fill="#440154" stroke="#ffffff" stroke-width="1"/>
+<text x="731.0" y="97.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.419</text>
+<text x="90" y="155.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#374151">0.300</text>
+<rect x="104" y="122" width="66" height="58" fill="#fde725" stroke="#ffffff" stroke-width="1"/>
+<text x="137.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.574</text>
+<rect x="170" y="122" width="66" height="58" fill="#7cc85b" stroke="#ffffff" stroke-width="1"/>
+<text x="203.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.541</text>
+<rect x="236" y="122" width="66" height="58" fill="#4cbd6f" stroke="#ffffff" stroke-width="1"/>
+<text x="269.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.529</text>
+<rect x="302" y="122" width="66" height="58" fill="#35b57a" stroke="#ffffff" stroke-width="1"/>
+<text x="335.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.521</text>
+<rect x="368" y="122" width="66" height="58" fill="#34a67d" stroke="#ffffff" stroke-width="1"/>
+<text x="401.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.512</text>
+<rect x="434" y="122" width="66" height="58" fill="#349b80" stroke="#ffffff" stroke-width="1"/>
+<text x="467.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.505</text>
+<rect x="500" y="122" width="66" height="58" fill="#339083" stroke="#ffffff" stroke-width="1"/>
+<text x="533.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.497</text>
+<rect x="566" y="122" width="66" height="58" fill="#328586" stroke="#ffffff" stroke-width="1"/>
+<text x="599.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.490</text>
+<rect x="632" y="122" width="66" height="58" fill="#327a89" stroke="#ffffff" stroke-width="1"/>
+<text x="665.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.483</text>
+<rect x="698" y="122" width="66" height="58" fill="#31718c" stroke="#ffffff" stroke-width="1"/>
+<text x="731.0" y="155.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.477</text>
+<text x="90" y="213.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#374151">0.500</text>
+<rect x="104" y="180" width="66" height="58" fill="#f9e627" stroke="#ffffff" stroke-width="1"/>
+<text x="137.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.573</text>
+<rect x="170" y="180" width="66" height="58" fill="#a5d24a" stroke="#ffffff" stroke-width="1"/>
+<text x="203.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.552</text>
+<rect x="236" y="180" width="66" height="58" fill="#87cb57" stroke="#ffffff" stroke-width="1"/>
+<text x="269.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.544</text>
+<rect x="302" y="180" width="66" height="58" fill="#69c363" stroke="#ffffff" stroke-width="1"/>
+<text x="335.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.536</text>
+<rect x="368" y="180" width="66" height="58" fill="#55bf6c" stroke="#ffffff" stroke-width="1"/>
+<text x="401.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.531</text>
+<rect x="434" y="180" width="66" height="58" fill="#3eb975" stroke="#ffffff" stroke-width="1"/>
+<text x="467.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.525</text>
+<rect x="500" y="180" width="66" height="58" fill="#35b17a" stroke="#ffffff" stroke-width="1"/>
+<text x="533.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.519</text>
+<rect x="566" y="180" width="66" height="58" fill="#34a67e" stroke="#ffffff" stroke-width="1"/>
+<text x="599.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.512</text>
+<rect x="632" y="180" width="66" height="58" fill="#349f7f" stroke="#ffffff" stroke-width="1"/>
+<text x="665.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.507</text>
+<rect x="698" y="180" width="66" height="58" fill="#349981" stroke="#ffffff" stroke-width="1"/>
+<text x="731.0" y="213.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.503</text>
+<text x="90" y="271.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#374151">0.700</text>
+<rect x="104" y="238" width="66" height="58" fill="#f8e627" stroke="#ffffff" stroke-width="1"/>
+<text x="137.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.573</text>
+<rect x="170" y="238" width="66" height="58" fill="#bed83f" stroke="#ffffff" stroke-width="1"/>
+<text x="203.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.558</text>
+<rect x="236" y="238" width="66" height="58" fill="#9dd04e" stroke="#ffffff" stroke-width="1"/>
+<text x="269.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.550</text>
+<rect x="302" y="238" width="66" height="58" fill="#81c959" stroke="#ffffff" stroke-width="1"/>
+<text x="335.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.543</text>
+<rect x="368" y="238" width="66" height="58" fill="#74c65e" stroke="#ffffff" stroke-width="1"/>
+<text x="401.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.539</text>
+<rect x="434" y="238" width="66" height="58" fill="#5cc069" stroke="#ffffff" stroke-width="1"/>
+<text x="467.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.533</text>
+<rect x="500" y="238" width="66" height="58" fill="#4dbd6f" stroke="#ffffff" stroke-width="1"/>
+<text x="533.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.529</text>
+<rect x="566" y="238" width="66" height="58" fill="#3cb976" stroke="#ffffff" stroke-width="1"/>
+<text x="599.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.525</text>
+<rect x="632" y="238" width="66" height="58" fill="#35b679" stroke="#ffffff" stroke-width="1"/>
+<text x="665.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.522</text>
+<rect x="698" y="238" width="66" height="58" fill="#34ac7c" stroke="#ffffff" stroke-width="1"/>
+<text x="731.0" y="271.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">0.516</text>
+<text x="90" y="329.0" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="#374151">0.900</text>
+<rect x="104" y="296" width="66" height="58" fill="#f1e42a" stroke="#ffffff" stroke-width="1"/>
+<text x="137.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.571</text>
+<rect x="170" y="296" width="66" height="58" fill="#d4dd36" stroke="#ffffff" stroke-width="1"/>
+<text x="203.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.564</text>
+<rect x="236" y="296" width="66" height="58" fill="#acd447" stroke="#ffffff" stroke-width="1"/>
+<text x="269.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.553</text>
+<rect x="302" y="296" width="66" height="58" fill="#9bcf4e" stroke="#ffffff" stroke-width="1"/>
+<text x="335.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.549</text>
+<rect x="368" y="296" width="66" height="58" fill="#87cb56" stroke="#ffffff" stroke-width="1"/>
+<text x="401.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.544</text>
+<rect x="434" y="296" width="66" height="58" fill="#72c65f" stroke="#ffffff" stroke-width="1"/>
+<text x="467.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.539</text>
+<rect x="500" y="296" width="66" height="58" fill="#6ac463" stroke="#ffffff" stroke-width="1"/>
+<text x="533.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.536</text>
+<rect x="566" y="296" width="66" height="58" fill="#5ac06a" stroke="#ffffff" stroke-width="1"/>
+<text x="599.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.532</text>
+<rect x="632" y="296" width="66" height="58" fill="#43ba73" stroke="#ffffff" stroke-width="1"/>
+<text x="665.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.526</text>
+<rect x="698" y="296" width="66" height="58" fill="#35b579" stroke="#ffffff" stroke-width="1"/>
+<text x="731.0" y="329.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#1f2933">0.522</text>
+</svg>

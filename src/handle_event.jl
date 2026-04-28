@@ -5,9 +5,31 @@ function handle_event!(simulation::Simulation, event::EventRepaymentClientLoan)
     if rand() < event.default_probability
         bank.total_loan_assets -= loan.repayment
         loan.is_defaulted = true
+        record_event!(
+            simulation,
+            EventClientLoanDefaulted(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                loan.id,
+                loan.lender,
+                loan.repayment
+            )
+        )
     else
         bank.total_loan_assets -= loan.repayment
         bank.reserves += loan.repayment
+        record_event!(
+            simulation,
+            EventClientLoanRepaid(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                loan.id,
+                loan.lender,
+                loan.repayment
+            )
+        )
     end
 end
 
@@ -22,6 +44,18 @@ function handle_event!(simulation::Simulation, event::EventRepaymentBankLoan)
         bank_borrower.total_liabilities -= loan.repayment
         bank_lender.reserves += loan.repayment
         bank_lender.total_loan_assets -= loan.repayment
+        record_event!(
+            simulation,
+            EventBankLoanRepaid(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                loan.id,
+                loan.borrower,
+                loan.lender,
+                loan.repayment
+            )
+        )
     else
         # TODO: Handle insufficient reserves, e.g., default logic
         # note: bank at this point may have many other loans,
@@ -29,6 +63,18 @@ function handle_event!(simulation::Simulation, event::EventRepaymentBankLoan)
         bank_borrower.total_liabilities -= loan.repayment
         bank_lender.total_loan_assets -= loan.repayment
         loan.is_defaulted = true
+        record_event!(
+            simulation,
+            EventBankLoanDefaulted(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                loan.id,
+                loan.borrower,
+                loan.lender,
+                loan.repayment
+            )
+        )
     end
 end
 
@@ -40,21 +86,42 @@ function handle_event!(simulation::Simulation, event::EventRepaymentDeposit)
     if bank.reserves >= deposit.repayment
         bank.reserves -= deposit.repayment
         bank.total_liabilities -= deposit.repayment
+        record_event!(
+            simulation,
+            EventDepositRepaid(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                deposit.id,
+                deposit.borrower,
+                deposit.repayment
+            )
+        )
     else
         # TODO: Handle insufficient reserves, e.g., default logic
         # note: bank at this point may have many other loans,
         # inter-bank loans and deposits
         deposit.is_defaulted = true
         bank.total_liabilities -= deposit.repayment
+        record_event!(
+            simulation,
+            EventDepositDefaulted(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                deposit.id,
+                deposit.borrower,
+                deposit.repayment
+            )
+        )
    end
 end
 
 function handle_event!(simulation::Simulation, event::EventGrantClientDeposit)
     bank = simulation.banks[event.bank_id]
     #client logic skipped in this version
-    deposit_id = get_loan_id!(simulation)
     deposit = BulletLoan(
-        deposit_id,
+        event.deposit_id,
         event.principal,
         event.annual_interest_rate,
         event.term,
@@ -81,9 +148,8 @@ end
 
 function handle_event!(simulation::Simulation, event::EventGrantClientLoan)
     bank = simulation.banks[event.bank_id]
-    loan_id = get_loan_id!(simulation)
     loan = BulletLoan(
-        loan_id,
+        event.loan_id,
         event.principal,
         event.annual_interest_rate,
         event.term,
@@ -110,9 +176,8 @@ function handle_event!(simulation::Simulation, event::EventGrantBankLoan)
     bank_borrower = simulation.banks[event.bank_borrower_id]
     bank_lender = simulation.banks[event.bank_lender_id]
     
-    loan_id = get_loan_id!(simulation)
     loan = BulletLoan(
-        loan_id,
+        event.loan_id,
         event.principal,
         event.annual_interest_rate,
         event.term,
@@ -149,6 +214,7 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
     available_reserves = bank.reserves - required_reserves
 
     expected_loan_value = (1 - event.default_probability) * event.principal * (1 + bank.R_client_loan / 365)^event.term
+    rejection_reason = "negative_expected_value_credit_risk"
 
     if available_reserves >= event.principal
         #grant loan if profitable
@@ -158,8 +224,9 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
                 get_event_id!(simulation),
                 event.event_id,
                 event.time,
-                nothing,
+                event.client_id,
                 event.bank_id,
+                get_loan_id!(simulation),
                 event.principal,
                 event.term,
                 bank.R_client_loan,
@@ -169,11 +236,21 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
             return true
         end
     else
+        if available_reserves < 0
+            rejection_reason = "reserve_constraint_violation"
+        elseif expected_loan_value <= event.principal
+            rejection_reason = "negative_expected_value_credit_risk"
+        else
+            rejection_reason = "insufficient_liquidity_after_own_reserves"
+        end
+
         #check interbank loan market
+        interbank_liquidity_found = false
         other_banks_ids = random_keys_except(simulation.banks, event.bank_id)
         for id in other_banks_ids
             response = check_interbank_loan(simulation.banks[id], event.principal)
             if response !== nothing
+                interbank_liquidity_found = true
                 #calculate profitability
                 interbank_loan_repayment = event.principal * (1 + response.interest_rate / 365)^simulation.interbank_loaning_term
                 expected_profit_after_loan = expected_loan_value - interbank_loan_repayment
@@ -194,8 +271,9 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
                         get_event_id!(simulation),
                         event.event_id,
                         event.time,
-                        nothing,
+                        event.client_id,
                         event.bank_id,
+                        get_loan_id!(simulation),
                         event.principal,
                         event.term,
                         bank.R_client_loan,
@@ -206,7 +284,25 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
                 end
             end
         end
+
+        if interbank_liquidity_found
+            rejection_reason = "insufficient_liquidity_even_after_interbank_funding"
+        end
     end
+    record_event!(
+        simulation,
+        EventRejectClientLoan(
+            get_event_id!(simulation),
+            event.event_id,
+            event.time,
+            event.client_id,
+            event.bank_id,
+            event.principal,
+            event.term,
+            event.default_probability,
+            rejection_reason
+        )
+    )
     return false
 end
 
@@ -225,6 +321,7 @@ function handle_event!(simulation::Simulation, event::EventRequestBankLoan)
             event.time,
             event.bank_borrower_id,
             event.bank_lender_id,
+            get_loan_id!(simulation),
             event.principal,
             event.term,
             bank_lender.R_bank_loan
@@ -232,6 +329,19 @@ function handle_event!(simulation::Simulation, event::EventRequestBankLoan)
         execute_event!(simulation, event_grant_interbank_loan)
         return true
     else
+        record_event!(
+            simulation,
+            EventRejectBankLoan(
+                get_event_id!(simulation),
+                event.event_id,
+                event.time,
+                event.bank_borrower_id,
+                event.bank_lender_id,
+                event.principal,
+                event.term,
+                "insufficient_lender_liquidity"
+            )
+        )
         return false
     end
 end
@@ -245,6 +355,7 @@ function handle_event!(simulation::Simulation, event::EventRequestClientDeposit)
         event.time,
         nothing,
         event.bank_id,
+        get_loan_id!(simulation),
         event.principal,
         event.term,
         bank.R_deposit
@@ -256,6 +367,7 @@ end
 
 function execute_event!(simulation::Simulation, event::AbstractEvent)
     simulation.time = event.time
+    record_event!(simulation, event)
     handle_event!(simulation, event)
     if event isa EventRepaymentClientLoan
         loan = pop!(simulation.client_loans, event.loan_id)
@@ -267,7 +379,6 @@ function execute_event!(simulation::Simulation, event::AbstractEvent)
         deposit = pop!(simulation.client_deposits, event.deposit_id)
         push!(simulation.history_client_deposits, deposit)
     end
-    push!(simulation.executed_events, event)
 end
 
 function run_simulation!(simulation::Simulation)

@@ -28,19 +28,21 @@ using BankSim
     flattened = flatten_event(event)
     @test flattened[:deposit_id] == 102
 
-    event = EventGrantClientLoan(5, 4, 14, 43, 4, 20000, 60, 0.04, 0.02)
+    event = EventGrantClientLoan(5, 4, 14, 43, 4, 100, 20000, 60, 0.04, 0.02)
     flattened = flatten_event(event)
     @test flattened[:client_id] == 43
     @test flattened[:bank_id] == 4
+    @test flattened[:loan_id] == 100
     @test flattened[:principal] == 20000
     @test flattened[:term] == 60
     @test flattened[:annual_interest_rate] == 0.04
     @test flattened[:default_probability] == 0.02
 
-    event = EventGrantBankLoan(6, 5, 16, 8, 9, 15000, 45, 0.035)
+    event = EventGrantBankLoan(6, 5, 16, 8, 9, 101, 15000, 45, 0.035)
     flattened = flatten_event(event)
     @test flattened[:bank_borrower_id] == 8
     @test flattened[:bank_lender_id] == 9
+    @test flattened[:loan_id] == 101
     @test flattened[:principal] == 15000
     @test flattened[:term] == 45
     @test flattened[:annual_interest_rate] == 0.035
@@ -58,12 +60,18 @@ using BankSim
     @test flattened[:bank_lender_id] == 11
     @test flattened[:principal] == 18000
     @test flattened[:term] == 75
+
+    event = EventClientLoanDefaulted(9, 8, 19, 12, 3, 10500)
+    flattened = flatten_event(event)
+    @test flattened[:loan_id] == 12
+    @test flattened[:bank_id] == 3
+    @test flattened[:repayment] == 10500
 end
 
 
 @testset "Event Reconstruction Tests" begin
     # EventGrantClientDeposit
-    original = EventGrantClientDeposit(2, 1, 15, 99, 7, 5000, 60, 0.03)
+    original = EventGrantClientDeposit(2, 1, 15, 99, 7, 100, 5000, 60, 0.03)
     flattened = flatten_event(original)
     reconstructed = reconstruct_event(flattened)
     @test reconstructed == original
@@ -87,13 +95,13 @@ end
     @test reconstructed == original
 
     # EventGrantClientLoan
-    original = EventGrantClientLoan(5, 4, 14, 43, 4, 20000, 60, 0.04, 0.02)
+    original = EventGrantClientLoan(5, 4, 14, 43, 4, 101, 20000, 60, 0.04, 0.02)
     flattened = flatten_event(original)
     reconstructed = reconstruct_event(flattened)
     @test reconstructed == original
 
     # EventGrantBankLoan
-    original = EventGrantBankLoan(6, 5, 16, 8, 9, 15000, 45, 0.035)
+    original = EventGrantBankLoan(6, 5, 16, 8, 9, 102, 15000, 45, 0.035)
     flattened = flatten_event(original)
     reconstructed = reconstruct_event(flattened)
     @test reconstructed == original
@@ -115,4 +123,20 @@ end
     flattened = flatten_event(original)
     reconstructed = reconstruct_event(flattened)
     @test reconstructed == original
+
+    for original in AbstractEvent[
+        EventBankCreated(9, nothing, 0, 1, 100_000, 0.1, 0.05, 0.02, 0.01),
+        EventRejectClientLoan(10, 1, 20, nothing, 2, 5000, 30, 0.2, "reason"),
+        EventRejectBankLoan(11, 2, 21, 2, 3, 5000, 1, "reason"),
+        EventClientLoanRepaid(12, 3, 22, 101, 2, 5100),
+        EventClientLoanDefaulted(13, 3, 22, 101, 2, 5100),
+        EventDepositRepaid(14, 4, 23, 102, 2, 5050),
+        EventDepositDefaulted(15, 4, 23, 102, 2, 5050),
+        EventBankLoanRepaid(16, 5, 24, 103, 2, 3, 5001),
+        EventBankLoanDefaulted(17, 5, 24, 103, 2, 3, 5001)
+    ]
+        flattened = flatten_event(original)
+        reconstructed = reconstruct_event(flattened)
+        @test reconstructed == original
+    end
 end

@@ -1,100 +1,151 @@
 # julia-banking-system-abm
-> ⚠️ **Development Version**  
-> This project is in active development. Assumptions, implementations, and architecture are subject to change as the model evolves.
----
-## Quick Start
 
-### 1. Clone the repository
+A minimal agent-based banking system simulator written in Julia.
+
+The model focuses on banks, reserve/liquidity constraints, stochastic client loan/deposit flows, and interbank lending. It is inspired by zero-intelligence models: clients are not modeled as strategic agents, but as an exogenous stream of loan requests and deposit inflows.
+
+## Contents
+
+- [Quick start](#quick-start)
+- [Experiments](#experiments)
+- [Model overview](#model-overview)
+- [Core assumptions](#core-assumptions)
+- [Current limitations](#current-limitations)
+- [License](#license)
+
+## Quick start
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/marckiller/julia-banking-system-abm.git
 cd julia-banking-system-abm
 ```
 
-### 2. Launch Julia with the project environment
+Instantiate the Julia environment:
 
 ```bash
 julia --project=.
 ```
-This will install all packages listed in Project.toml.
 
-### 3. Instantiate dependencies
+Then inside Julia:
 
-```bash
+```julia
 using Pkg
 Pkg.instantiate()
 ```
 
-### 4. Run an experiment
+Run the main demo:
 
 ```bash
 julia --project=. experiments/demo/run.jl
 ```
-This demo runs a full simulation of a small multi-bank system using predefined parameters from the config.jl file. Feel free to adjust any parameters to suit your own experimental needs or scenarios.
 
-## Project motivation
+Demo outputs are saved under:
 
-This project aims to create the simplest possible agent-based simulation of a banking system that includes:
-
-- Consumer loan issuance,
-- Consumer deposit handling,
-- Interbank lending as a liquidity adjustment mechanism.
-  
-The model is loosely inspired by zero-intelligence agent models in financial market microstructure. In particular, clients are not implemented as agents. Instead, the banking system is exposed to a stream of exogenous loan and deposit requests generated stochastically. These requests represent aggregate client behavior but do not originate from entities with goals, constraints, or budgets. This abstraction removes individual-level dynamics and frames client activity as background noise — enabling the simulation to focus purely on the banking system’s structural response to demand shocks.
-
-The goal is to explore — through simulation — the emergence of stabilizing and destabilizing dynamics in such a system, particularly under constraints such as reserve requirements and limited interbank liquidity.
-
-## Core Assumptions
-
-- **Agents**: Only banks are modeled explicitly. Clients are implicit and generate stochastic events.
-- **Revenue Sources**: Banks can only earn via consumer loans and interbank loans.
-- **Randomness**: Loan and deposit requests arrive randomly based on configured rate parameters.
-- **Bullet Loans Only**: All loans are repaid once at maturity (principal + interest).
-- **Perfect Default Estimation**: Banks are given the borrower's probability of default (`P_default`) directly. No estimation is performed.
-- **Hard Reserve Constraint**: Each bank is required to maintain a reserve buffer proportional to its liabilities.
-- **Interbank Lending**: If a bank lacks sufficient reserves to grant a consumer loan, it selects another bank at random and attempts to borrow the needed funds via a one-day interbank loan.
-- **Loans and deposits policy** Banks always accept client deposits and always agree to issue interbank loans if they have sufficient liquidity. A bank will grant a client loan only if the expected value of the loan — computed as (1 - P_default) × repayment_amount — exceeds the principal of a loan plus any cost of required interbank borrowing.
-
-## Project Structure
-
+```bash
+results/demo/
 ```
-/julia-banking-system-abm
-├── src/
-│   ├── BankSim.jl              # Main module – imports all components
-│   ├── bank.jl                 # Bank structure and logic
-│   ├── loan.jl                 # Loan definition (deposits are also loans)
-│   ├── event.jl                # Event types used in the system
-│   ├── handle_event.jl         # Logic for handling each type of event
-│   ├── simulation_io.jl        # Save/load events, loans, and bank states
-│   ├── simulation.jl           # Global simulation state
-│   └── utils.jl                # Helper functions
-├── experiments/                # Experimental playgrounds
-├── LICENSE
-├── .gitignore
-├── Project.toml
-└── README.md
+
+See [experiments/demo/README.md](experiments/demo/README.md) for the demo setup, output files, plots, and observed results.
+
+## Experiments
+
+Each experiment folder has its own README with the runnable command, generated outputs, and result figures. These pages are convenient to browse directly on GitHub:
+
+- [Demo experiment](experiments/demo/README.md)
+- [Decentralization efficiency experiment](experiments/decentralization_efficiency/README.md)
+
+### Demo
+
+A fixed simulation scenario showing a liquidity-stressed but non-collapsing banking system. It generates event logs, summary metrics, and plots for credit rationing, liquidity stress, interbank lending, repayment outcomes, and balance-sheet consistency.
+
+Run:
+
+```bash
+julia --project=. experiments/demo/run.jl
 ```
-## More Detailed Simulation Mechanism
 
-### Event-Based Architecture
+Results:
 
-The simulation operates in an event-driven manner. Each event is defined by a unique event_id, a trigger_event_id (used only for analyzing cascades of causally related events), a simulation time, and a set of event-specific parameters. Time in the simulation advances by processing events in a priority queue, ordered chronologically.
+```bash
+results/demo/
+```
 
-A simulation run begins by pre-generating a scenario—typically a stream of random client requests for loans and deposits—and pushing those events into the event queue. Each event type (e.g., loan request, loan grant, loan repayment) has a dedicated execution method implemented in the event handler. Executing an event may trigger monetary flows, update balance sheets (assets and liabilities), and schedule future events. For instance, EventGrantClientLoan automatically schedules a corresponding EventRepaymentClientLoan at the maturity date of the loan.
+Documentation: [experiments/demo/README.md](experiments/demo/README.md)
 
-Once the queue is empty, the simulation ends. The main output consists of:
--	a vector of executed events, from which metrics such as loan request acceptance rates can be computed,
--	a vector of loans, allowing analysis of default rates and repayment behavior,
--	a time series log of each bank’s financial state, including reserves, liabilities, and loan assets.
+### Decentralization efficiency
 
-These outputs enable post-simulation analysis of the system’s performance, risk exposure, and liquidity dynamics.
+An experiment measuring how effectively a decentralized interbank market reallocates fragmented liquidity across banks. It compares credit activity supported under decentralized liquidity redistribution.
 
-### Loan System
+Run:
 
-All loans in the simulation are implemented using a single unified structure: BulletLoan. This type of loan is repaid in full—principal plus interest—at maturity, with no intermediate payments. The same data structure is used to represent three different economic relationships:
-- Client loans, where a bank lends money to a client,
--	Client deposits, interpreted as loans from clients to banks,
--	Interbank loans, where one bank lends to another to cover liquidity needs.
+```bash
+julia --project=. experiments/decentralization_efficiency/run.jl
+```
 
-This design choice simplifies the logic by treating all cash flow commitments symmetrically, regardless of direction. Only the roles of lender and borrower change depending on the context.
+Results:
 
+```bash
+results/decentralization_efficiency/
+```
+
+Documentation: [experiments/decentralization_efficiency/README.md](experiments/decentralization_efficiency/README.md)
+
+## Model overview
+
+The simulation is event-driven.
+
+A scenario generates random client loan requests and deposit inflows. Events are processed chronologically. Each event may update bank balance sheets, create new financial obligations, or schedule future repayment events.
+
+The model includes three types of financial relationships:
+
+1. client loans,
+2. client deposits,
+3. interbank loans.
+
+All are represented as bullet-style obligations: repayment occurs once at maturity, with no intermediate payments. This keeps the accounting logic simple and makes all cash-flow commitments structurally comparable.
+
+## Core assumptions
+
+Only banks are modeled as explicit agents. Clients are implicit and generate stochastic loan/deposit events.
+
+Banks earn income from client loans and interbank loans. A client loan is granted only if:
+
+1. it has positive expected value under the given default probability,
+2. the bank can fund it while satisfying its reserve/liquidity constraint.
+
+If a bank lacks enough liquidity to grant a loan, it may try to borrow from another bank on the interbank market. Interbank lending therefore acts as a liquidity adjustment mechanism between banks.
+
+The model currently assumes:
+
+- stochastic client loan and deposit demand,
+- bullet loans only,
+- direct access to borrower default probability,
+- hard reserve/liquidity constraints,
+- simple interbank lending,
+- no strategic clients,
+- no central bank,
+- no endogenous interest-rate formation,
+- no capital adequacy regulation.
+
+## Current limitations
+
+This is a deliberately minimal model.
+
+It does not yet include:
+
+- strategic households or firms,
+- a central bank,
+- endogenous interest rates,
+- regulatory capital,
+- deposit insurance,
+- macroeconomic feedback,
+- learning behavior,
+- strategic bank behavior.
+
+The reserve/liquidity factor used in demo scenarios should be interpreted as a modeling constraint, not as a calibrated real-world reserve requirement.
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
