@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="420" viewBox="0 0 920 420">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="460.0" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#111827">System balance sheet at day 720</text>
+<text x="72" y="62" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111827">Assets</text>
+<text x="492" y="62" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111827">Liabilities and equity</text>
+<text x="72" y="90" font-family="Arial, sans-serif" font-size="11" fill="#374151">reserves</text>
+<rect x="72" y="96" width="21.376040332188055" height="28" fill="#2563eb"/>
+<text x="101.37604033218805" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111827">23.2M</text>
+<text x="72" y="136" font-family="Arial, sans-serif" font-size="11" fill="#374151">client loans</text>
+<rect x="72" y="142" width="360.0" height="28" fill="#2563eb"/>
+<text x="440.0" y="161" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111827">391.0M</text>
+<text x="72" y="182" font-family="Arial, sans-serif" font-size="11" fill="#374151">interbank assets</text>
+<rect x="72" y="188" width="2.4032081585202323" height="28" fill="#2563eb"/>
+<text x="82.40320815852023" y="207" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111827">2.6M</text>
+<text x="492" y="90" font-family="Arial, sans-serif" font-size="11" fill="#374151">deposits</text>
+<rect x="492" y="96" width="31.257204486725715" height="28" fill="#dc2626"/>
+<text x="531.2572044867258" y="115" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111827">33.9M</text>
+<text x="492" y="136" font-family="Arial, sans-serif" font-size="11" fill="#374151">interbank liabilities</text>
+<rect x="492" y="142" width="2.4032081585202323" height="28" fill="#dc2626"/>
+<text x="502.4032081585202" y="161" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111827">2.6M</text>
+<text x="492" y="182" font-family="Arial, sans-serif" font-size="11" fill="#374151">equity / net worth</text>
+<rect x="492" y="188" width="350.11883584546234" height="28" fill="#16a34a"/>
+<text x="850.1188358454624" y="207" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#111827">380.2M</text>
+</svg>
