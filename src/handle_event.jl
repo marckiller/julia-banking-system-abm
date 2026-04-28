@@ -214,6 +214,7 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
     available_reserves = bank.reserves - required_reserves
 
     expected_loan_value = (1 - event.default_probability) * event.principal * (1 + bank.R_client_loan / 365)^event.term
+    rejection_reason = "negative_expected_value_credit_risk"
 
     if available_reserves >= event.principal
         #grant loan if profitable
@@ -235,11 +236,21 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
             return true
         end
     else
+        if available_reserves < 0
+            rejection_reason = "reserve_constraint_violation"
+        elseif expected_loan_value <= event.principal
+            rejection_reason = "negative_expected_value_credit_risk"
+        else
+            rejection_reason = "insufficient_liquidity_after_own_reserves"
+        end
+
         #check interbank loan market
+        interbank_liquidity_found = false
         other_banks_ids = random_keys_except(simulation.banks, event.bank_id)
         for id in other_banks_ids
             response = check_interbank_loan(simulation.banks[id], event.principal)
             if response !== nothing
+                interbank_liquidity_found = true
                 #calculate profitability
                 interbank_loan_repayment = event.principal * (1 + response.interest_rate / 365)^simulation.interbank_loaning_term
                 expected_profit_after_loan = expected_loan_value - interbank_loan_repayment
@@ -273,6 +284,10 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
                 end
             end
         end
+
+        if interbank_liquidity_found
+            rejection_reason = "insufficient_liquidity_even_after_interbank_funding"
+        end
     end
     record_event!(
         simulation,
@@ -285,7 +300,7 @@ function handle_event!(simulation::Simulation, event::EventRequestClientLoan)
             event.principal,
             event.term,
             event.default_probability,
-            "insufficient_liquidity_or_expected_value"
+            rejection_reason
         )
     )
     return false
