@@ -1,149 +1,104 @@
 # Decentralization Efficiency Experiment
 
-This experiment studies how splitting the same total reserve base across a larger number of banks affects credit availability, liquidity stress, and system-level outcomes in a simplified zero-intelligence banking model.
+This experiment compares banking systems with the same total initial reserve base split across different numbers of banks.
 
-The goal is to make one mechanism visible: the trade-off between centralized liquidity pooling and decentralized balance-sheet constraints.
+Each run uses the same stochastic stream of client loan and deposit requests. The experiment varies:
 
-## Research Question
+- `NUM_BANKS`: number of banks receiving the reserve base,
+- `MIN_RESERVES_FACTOR`: required reserve buffer as a fraction of liabilities.
 
-How does the number of banks in the system affect liquidity and credit allocation when the total amount of initial reserves is held constant?
+The output is a set of heatmaps over `NUM_BANKS` and `MIN_RESERVES_FACTOR`.
 
-More concretely, the experiment compares systems where:
+## Setup
 
-- one bank holds the entire initial reserve base,
-- the same reserve base is split evenly across multiple banks,
-- client loan and deposit demand arrives stochastically,
-- banks follow simple rule-based decisions,
-- banks may use the interbank market when they lack enough liquidity to satisfy a client loan request.
+Current experiment configuration:
 
-## Model Assumptions
+| Parameter | Value |
+| --- | ---: |
+| Replications | 8 |
+| Number of banks | 1 to 10 |
+| Reserve factors | 0.1, 0.3, 0.5, 0.7, 0.9 |
+| Total initial reserves | 300M |
+| Simulation duration | 720 days |
+| Analysis window | days 180-720 |
+| Client loan requests | Poisson, 25/day |
+| Client deposit requests | Poisson, 5/day |
+| Client loan terms | 90, 180, 360 days |
+| Client deposit terms | 30, 90 days |
+| Interbank loan term | 1 day |
 
-This experiment uses the core `BankSim` model with rule-based bank behavior.
-
-The model is intentionally zero-intelligence:
-
-- client demand is represented by exogenous stochastic loan and deposit requests,
-- banks follow deterministic balance-sheet rules,
-- bank decisions use current reserves, liabilities, interest rates, and default probabilities,
-- interbank lending is used as a short-term liquidity mechanism,
-- defaults are stochastic and based on configured probabilities.
-
-## Experimental Design
-
-The experiment varies two main parameters:
-
-- `NUM_BANKS`: number of banks in the system,
-- `MIN_RESERVES_FACTOR`: minimum reserve requirement as a fraction of liabilities.
-
-The total initial reserve base is fixed. For each value of `NUM_BANKS`, the same total reserve amount is split evenly across banks.
-
-Example:
-
-```text
-TOTAL_INITIAL_RESERVES = 1_000_000_000
-
-NUM_BANKS = 1
-bank reserves = [1_000_000_000]
-
-NUM_BANKS = 5
-bank reserves = [200_000_000, 200_000_000, 200_000_000, 200_000_000, 200_000_000]
-
-NUM_BANKS = 10
-bank reserves = [100_000_000, ..., 100_000_000]
-```
-
-This creates two competing effects:
-
-- **Liquidity pooling**: fewer banks means reserves are concentrated in fewer balance sheets, making large loan requests easier to satisfy directly.
-- **Interbank coordination**: more banks creates local liquidity shortages and surpluses, allowing the interbank market to redistribute reserves when possible.
-
-The experiment shows how decentralization changes credit access, interbank borrowing, and reserve-constrained stability.
+The same total reserve amount is split evenly across banks. For example, with 1 bank the bank starts with 300M; with 10 banks each bank starts with 30M.
 
 ## Metrics
 
-Each simulation run produces a replayable event log in memory. Metrics are computed from that log and aggregated by `NUM_BANKS` and `MIN_RESERVES_FACTOR`.
-
 | Metric | Meaning |
 | --- | --- |
-| `loan_volume_acceptance_rate` | Share of requested client loan principal that was granted |
-| `deposit_volume_repay_rate` | Share of matured deposit repayment value paid on time |
+| `loan_volume_acceptance_rate` | Granted client loan principal divided by requested client loan principal |
+| `deposit_volume_repay_rate` | Repaid matured deposit value divided by all matured deposit value |
 | `interbank_dependency_rate` | Granted interbank loans divided by granted client loans |
-| `liquidity_stress_volume_rate` | Share of requested client loan principal rejected |
-| `bank_net_growth_ratio` | Final total bank net worth divided by initial total bank net worth |
-| `liquidity_score` | Composite visual score combining credit availability, deposit repayment, interbank repayment, loan stress, and bank net worth growth |
+| `liquidity_stress_volume_rate` | Rejected client loan principal divided by requested client loan principal |
+| `bank_net_growth_ratio` | Bank net worth at analysis end divided by bank net worth at analysis start |
+| `liquidity_score` | Composite score built from loan acceptance, deposit repayment, interbank repayment, loan rejection, and bank net worth growth |
 
-The composite liquidity score is a compact visual summary. Individual metrics should be inspected alongside it.
+`liquidity_stress_volume_rate` is displayed as **Loan rejection rate** in the plots, because it measures total rejected loan volume.
 
 ## Output Files
 
-The experiment writes:
-
 ```text
-results/decentralization_efficiency_demo/
+results/decentralization_efficiency/
 ├── metrics.csv
 ├── runs.csv
 ├── summary.csv
 └── plots/
 ```
 
-`metrics.csv` contains one row per simulation run. `runs.csv` stores seeds and parameter values. `summary.csv` averages metrics by `NUM_BANKS` and `MIN_RESERVES_FACTOR`. Full event logs are optional debug output.
+`metrics.csv` has one row per run. `summary.csv` averages metrics by `NUM_BANKS` and `MIN_RESERVES_FACTOR`. `runs.csv` stores seeds and parameter values.
 
 ## Results
 
-The demo run uses:
+### Interbank Dependency Rate
 
-```text
-replications = 10
-NUM_BANKS = 1:10
-MIN_RESERVES_FACTOR = [0.1, 0.3, 0.5, 0.7, 0.9]
-simulation_duration_days = 720
-client_loan_requests_per_day = 20.0
-client_deposit_requests_per_day = 5.0
-```
+![Interbank dependency rate](../../results/decentralization_efficiency/plots/heatmap_interbank_dependency_rate.svg)
 
-### Interbank Dependency
+The first column is zero because a one-bank system has no interbank market. For systems with more banks, interbank dependency rises as the number of banks increases. The highest values appear in the upper-right region of the matrix, where the reserve base is split across many banks.
 
-![Interbank dependency rate](../../results/decentralization_efficiency_demo/plots/heatmap_interbank_dependency_rate.svg)
+### Deposit Repayment Rate
 
-Splitting the reserve base across more banks increases reliance on the interbank market. The effect grows quickly from one to five banks and then begins to flatten as the number of banks approaches ten.
+![Deposit repayment rate](../../results/decentralization_efficiency/plots/heatmap_deposit_volume_repay_rate.svg)
 
-### Deposit Repayment
+Deposit repayment is highest in the one-bank case. With more banks, repayment rates decline. The decline is strongest at the lowest reserve factor and weaker at higher reserve factors.
 
-![Deposit repayment rate](../../results/decentralization_efficiency_demo/plots/heatmap_deposit_volume_repay_rate.svg)
+### Loan Volume Acceptance Rate
 
-Deposit repayment remains high overall, but repayment quality falls as the number of banks increases under low reserve requirements. Higher reserve factors reduce this deposit-side stress.
+![Loan volume acceptance rate](../../results/decentralization_efficiency/plots/heatmap_loan_volume_acceptance_rate.svg)
+
+Loan volume acceptance stays in a narrow range across the grid. It is slightly higher for more banks at low reserve factors and lower for higher reserve factors.
+
+### Loan Rejection Rate
+
+![Loan rejection rate](../../results/decentralization_efficiency/plots/heatmap_loan_rejection_rate.svg)
+
+Loan rejection rate is the rejected share of requested client loan principal. It is high across the grid and changes moderately with the number of banks and reserve factor.
+
+### Bank Net Worth Growth
+
+![Bank net worth growth](../../results/decentralization_efficiency/plots/heatmap_bank_net_growth_ratio.svg)
+
+Bank net worth grows in all cells of the matrix. Growth is higher in the low reserve-factor row and increases with the number of banks in that row. Higher reserve factors show smaller differences across the number of banks.
 
 ### Liquidity Score
 
-![Liquidity score](../../results/decentralization_efficiency_demo/plots/heatmap_liquidity_score.svg)
+![Liquidity score](../../results/decentralization_efficiency/plots/heatmap_liquidity_score.svg)
 
-The composite score is highest in the centralized setting and declines as reserves are split across more banks, especially under low reserve requirements. In this zero-intelligence setup, centralized liquidity pooling dominates the coordination benefit of a larger interbank market.
+The composite liquidity score is highest in the one-bank column. For multiple banks, the score is lower at low reserve factors and higher at larger reserve factors.
 
-### Loan Volume Acceptance
-
-![Loan volume acceptance rate](../../results/decentralization_efficiency_demo/plots/heatmap_loan_volume_acceptance_rate.svg)
-
-Loan volume acceptance is relatively stable across the grid. The main effect of decentralization appears in liquidity coordination and repayment stress rather than in aggregate loan volume granted.
-
-## How To Run
+## Reproduce
 
 From the repository root:
 
 ```bash
-julia --project=. -e 'include("experiments/decentralization_efficiency/run.jl"); run_experiment(results_dir="results/decentralization_efficiency_demo", averaging_n=10, number_of_banks=collect(1:10), min_reserves_factors=[0.1,0.3,0.5,0.7,0.9], simulation_duration_days=720, client_loan_requests_per_day=20.0, client_deposit_requests_per_day=5.0)'
+julia --project=. experiments/decentralization_efficiency/run.jl
+julia --project=. experiments/decentralization_efficiency/plot.jl results/decentralization_efficiency
 ```
 
-```bash
-julia --project=. experiments/decentralization_efficiency/plot.jl results/decentralization_efficiency_demo
-```
-
-## Reproducibility
-
-Each replication uses a deterministic aggregate demand scenario generated from `scenario_seed`. Each market configuration receives the same aggregate demand stream, with requests randomly routed to banks using a recorded `run_seed`.
-
-The output files retain both seeds:
-
-```text
-runs.csv:
-run_id, replication_id, scenario_seed, run_seed, NUM_BANKS, MIN_RESERVES_FACTOR
-```
+The generated heatmaps include the analysis window below each matrix.

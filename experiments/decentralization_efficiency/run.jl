@@ -79,6 +79,8 @@ function run_experiment(;
     number_of_banks::Vector{Int} = NUMBER_OF_BANKS,
     min_reserves_factors::Vector{Float64} = MIN_RESERVES_FACTORS,
     simulation_duration_days::Int = SIMULATION_DURATION_DAYS,
+    analysis_start_day::Int = ANALYSIS_START_DAY,
+    analysis_end_day::Int = ANALYSIS_END_DAY,
     client_loan_requests_per_day::Float64 = CLIENT_LOAN_REQUESTS_PER_DAY,
     client_deposit_requests_per_day::Float64 = CLIENT_DEPOSIT_REQUESTS_PER_DAY,
     save_events::Bool = SAVE_EVENTS,
@@ -91,6 +93,7 @@ function run_experiment(;
 
     run_id = 1
     total_runs = averaging_n * length(number_of_banks) * length(min_reserves_factors)
+    println("Analysis window: days $(analysis_start_day)-$(analysis_end_day)")
 
     for replication_id in 1:averaging_n
         scenario_seed = SCENARIO_SEED_BASE + replication_id
@@ -132,7 +135,12 @@ function run_experiment(;
 
                 metadata = run_metadata(run_id, replication_id, scenario_seed, current_run_seed, num_banks, min_reserve)
                 run_events = events_dataframe(run_id, sim.event_log)
-                run_metrics = compute_run_metrics(run_id, run_events)
+                run_metrics = compute_run_metrics(
+                    run_id,
+                    run_events;
+                    analysis_start_day = analysis_start_day,
+                    analysis_end_day = analysis_end_day
+                )
 
                 push!(
                     runs,

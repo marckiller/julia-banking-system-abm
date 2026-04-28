@@ -10,7 +10,7 @@ const HEATMAP_METRICS = [
     (:deposit_volume_repay_rate, "Deposit repayment rate", "heatmap_deposit_volume_repay_rate.svg"),
     (:bank_net_growth_ratio, "Bank net worth growth", "heatmap_bank_net_growth_ratio.svg"),
     (:interbank_dependency_rate, "Interbank dependency rate", "heatmap_interbank_dependency_rate.svg"),
-    (:liquidity_stress_volume_rate, "Liquidity stress rate", "heatmap_liquidity_stress_volume_rate.svg")
+    (:liquidity_stress_volume_rate, "Loan rejection rate", "heatmap_loan_rejection_rate.svg")
 ]
 
 function svg_escape(value)
@@ -86,6 +86,16 @@ function format_value(value)
     end
 end
 
+function analysis_window_label(df::DataFrame)
+    columns = Symbol.(names(df))
+    if :analysis_start_day in columns && :analysis_end_day in columns && nrow(df) > 0
+        start_day = first(skipmissing(df.analysis_start_day))
+        end_day = first(skipmissing(df.analysis_end_day))
+        return "Analysis window: days $(start_day)-$(end_day)"
+    end
+    return "Analysis window: days $(ANALYSIS_START_DAY)-$(ANALYSIS_END_DAY)"
+end
+
 function save_heatmap(df::DataFrame, metric::Symbol, title::String, output_path::String)
     banks = sort(unique(df.NUM_BANKS))
     reserves = sort(unique(df.MIN_RESERVES_FACTOR))
@@ -95,7 +105,7 @@ function save_heatmap(df::DataFrame, metric::Symbol, title::String, output_path:
     cell_w = 66
     cell_h = 58
     right = 28
-    bottom = 58
+    bottom = 78
     width = left + length(banks) * cell_w + right
     height = top + length(reserves) * cell_h + bottom
 
@@ -106,6 +116,7 @@ function save_heatmap(df::DataFrame, metric::Symbol, title::String, output_path:
     push!(rows, """<rect width="100%" height="100%" fill="#ffffff"/>""")
     push!(rows, """<text x="$(width / 2)" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">$(svg_escape(title))</text>""")
     push!(rows, """<text x="$(width / 2)" y="$(height - 18)" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">Number of banks</text>""")
+    push!(rows, """<text x="$(width / 2)" y="$(height - 42)" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">$(svg_escape(analysis_window_label(df)))</text>""")
     push!(rows, """<text x="18" y="$(top + length(reserves) * cell_h / 2)" text-anchor="middle" transform="rotate(-90 18 $(top + length(reserves) * cell_h / 2))" font-family="Arial, sans-serif" font-size="12" fill="#374151">Minimum reserve factor</text>""")
 
     for (j, bank_count) in enumerate(banks)

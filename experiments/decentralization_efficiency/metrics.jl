@@ -30,6 +30,10 @@ function event_rows(events::DataFrame, event_type::String)::DataFrame
     return filter(:event_type => ==(event_type), events)
 end
 
+function filter_analysis_window(events::DataFrame, analysis_start_day::Int, analysis_end_day::Int)::DataFrame
+    return filter(row -> analysis_start_day <= row.time <= analysis_end_day, events)
+end
+
 function count_events(events::DataFrame, event_type::String)::Int
     return nrow(event_rows(events, event_type))
 end
@@ -62,22 +66,24 @@ function net_worth(reserves, total_loan_assets, total_liabilities)
     return reserves + total_loan_assets - total_liabilities
 end
 
-function final_bank_net_worth(bank_states::DataFrame)::Float64
+function bank_net_worth_at(bank_states::DataFrame, snapshot_day::Int)::Float64
     isempty(bank_states) && return 0.0
 
     total = 0.0
     for group in groupby(bank_states, :id)
-        row = last(group)
+        history = filter(row -> row.time <= snapshot_day, group)
+        isempty(history) && continue
+        row = last(history)
         total += net_worth(row.reserves, row.total_loan_assets, row.total_liabilities)
     end
     return total
 end
 
-function bank_net_metrics(events::DataFrame)
-    initial_net = sum_event_column(events, EVENT_BANK_CREATED, :initial_reserves)
+function bank_net_metrics(events::DataFrame, analysis_start_day::Int, analysis_end_day::Int)
     bank_states = replay_bank_states(reconstruct_events(events))
-    final_net = final_bank_net_worth(bank_states)
-    return initial_net, final_net, safe_ratio(final_net, initial_net)
+    start_net = bank_net_worth_at(bank_states, analysis_start_day)
+    end_net = bank_net_worth_at(bank_states, analysis_end_day)
+    return start_net, end_net, safe_ratio(end_net, start_net)
 end
 
 function clipped_bank_net_growth_score(bank_net_growth_ratio)
@@ -87,35 +93,42 @@ function clipped_bank_net_growth_score(bank_net_growth_ratio)
     return clamp(bank_net_growth_ratio, 0.0, 2.0) / 2.0
 end
 
-function compute_run_metrics(run_id::Int, events::DataFrame)
-    n_loan_requested = count_events(events, EVENT_CLIENT_LOAN_REQUESTED)
-    n_loan_granted = count_events(events, EVENT_CLIENT_LOAN_GRANTED)
-    n_loan_rejected = count_events(events, EVENT_CLIENT_LOAN_REJECTED)
+function compute_run_metrics(
+    run_id::Int,
+    events::DataFrame;
+    analysis_start_day::Int = ANALYSIS_START_DAY,
+    analysis_end_day::Int = ANALYSIS_END_DAY
+)
+    analysis_events = filter_analysis_window(events, analysis_start_day, analysis_end_day)
 
-    requested_loan_principal = sum_event_column(events, EVENT_CLIENT_LOAN_REQUESTED, :principal)
-    granted_loan_principal = sum_event_column(events, EVENT_CLIENT_LOAN_GRANTED, :principal)
-    rejected_loan_principal = sum_event_column(events, EVENT_CLIENT_LOAN_REJECTED, :principal)
+    n_loan_requested = count_events(analysis_events, EVENT_CLIENT_LOAN_REQUESTED)
+    n_loan_granted = count_events(analysis_events, EVENT_CLIENT_LOAN_GRANTED)
+    n_loan_rejected = count_events(analysis_events, EVENT_CLIENT_LOAN_REJECTED)
 
-    n_deposit_repaid = count_events(events, EVENT_DEPOSIT_REPAID)
-    n_deposit_defaulted = count_events(events, EVENT_DEPOSIT_DEFAULTED)
-    deposit_repaid_amount = sum_event_column(events, EVENT_DEPOSIT_REPAID, :repayment)
-    deposit_defaulted_amount = sum_event_column(events, EVENT_DEPOSIT_DEFAULTED, :repayment)
+    requested_loan_principal = sum_event_column(analysis_events, EVENT_CLIENT_LOAN_REQUESTED, :principal)
+    granted_loan_principal = sum_event_column(analysis_events, EVENT_CLIENT_LOAN_GRANTED, :principal)
+    rejected_loan_principal = sum_event_column(analysis_events, EVENT_CLIENT_LOAN_REJECTED, :principal)
+
+    n_deposit_repaid = count_events(analysis_events, EVENT_DEPOSIT_REPAID)
+    n_deposit_defaulted = count_events(analysis_events, EVENT_DEPOSIT_DEFAULTED)
+    deposit_repaid_amount = sum_event_column(analysis_events, EVENT_DEPOSIT_REPAID, :repayment)
+    deposit_defaulted_amount = sum_event_column(analysis_events, EVENT_DEPOSIT_DEFAULTED, :repayment)
     n_deposit_matured = n_deposit_repaid + n_deposit_defaulted
     deposit_matured_amount = deposit_repaid_amount + deposit_defaulted_amount
 
-    n_interbank_requested = count_events(events, EVENT_INTERBANK_REQUESTED)
-    n_interbank_granted = count_events(events, EVENT_INTERBANK_GRANTED)
-    n_interbank_repaid = count_events(events, EVENT_INTERBANK_REPAID)
-    n_interbank_defaulted = count_events(events, EVENT_INTERBANK_DEFAULTED)
+    n_interbank_requested = count_events(analysis_events, EVENT_INTERBANK_REQUESTED)
+    n_interbank_granted = count_events(analysis_events, EVENT_INTERBANK_GRANTED)
+    n_interbank_repaid = count_events(analysis_events, EVENT_INTERBANK_REPAID)
+    n_interbank_defaulted = count_events(analysis_events, EVENT_INTERBANK_DEFAULTED)
     n_interbank_matured = n_interbank_repaid + n_interbank_defaulted
 
-    interbank_requested_principal = sum_event_column(events, EVENT_INTERBANK_REQUESTED, :principal)
-    interbank_granted_principal = sum_event_column(events, EVENT_INTERBANK_GRANTED, :principal)
-    interbank_repaid_amount = sum_event_column(events, EVENT_INTERBANK_REPAID, :repayment)
-    interbank_defaulted_amount = sum_event_column(events, EVENT_INTERBANK_DEFAULTED, :repayment)
+    interbank_requested_principal = sum_event_column(analysis_events, EVENT_INTERBANK_REQUESTED, :principal)
+    interbank_granted_principal = sum_event_column(analysis_events, EVENT_INTERBANK_GRANTED, :principal)
+    interbank_repaid_amount = sum_event_column(analysis_events, EVENT_INTERBANK_REPAID, :repayment)
+    interbank_defaulted_amount = sum_event_column(analysis_events, EVENT_INTERBANK_DEFAULTED, :repayment)
     interbank_matured_amount = interbank_repaid_amount + interbank_defaulted_amount
 
-    initial_net, final_net, bank_net_growth_ratio = bank_net_metrics(events)
+    start_net, end_net, bank_net_growth_ratio = bank_net_metrics(events, analysis_start_day, analysis_end_day)
 
     loan_acceptance_rate = safe_ratio(n_loan_granted, n_loan_requested)
     loan_volume_acceptance_rate = safe_ratio(granted_loan_principal, requested_loan_principal)
@@ -138,6 +151,8 @@ function compute_run_metrics(run_id::Int, events::DataFrame)
 
     return (
         run_id = run_id,
+        analysis_start_day = analysis_start_day,
+        analysis_end_day = analysis_end_day,
         n_client_loan_requests = n_loan_requested,
         n_client_loan_granted = n_loan_granted,
         n_client_loan_rejected = n_loan_rejected,
@@ -156,8 +171,10 @@ function compute_run_metrics(run_id::Int, events::DataFrame)
         interbank_granted_principal = interbank_granted_principal,
         interbank_repaid_amount = interbank_repaid_amount,
         interbank_defaulted_amount = interbank_defaulted_amount,
-        total_initial_banks_net = initial_net,
-        total_final_banks_net = final_net,
+        total_analysis_start_banks_net = start_net,
+        total_analysis_end_banks_net = end_net,
+        total_initial_banks_net = start_net,
+        total_final_banks_net = end_net,
         loan_acceptance_rate = loan_acceptance_rate,
         loan_volume_acceptance_rate = loan_volume_acceptance_rate,
         deposit_repay_rate = deposit_repay_rate,
@@ -174,12 +191,26 @@ function compute_run_metrics(run_id::Int, events::DataFrame)
     )
 end
 
-function compute_metrics(events::DataFrame, runs::DataFrame)::DataFrame
+function compute_metrics(
+    events::DataFrame,
+    runs::DataFrame;
+    analysis_start_day::Int = ANALYSIS_START_DAY,
+    analysis_end_day::Int = ANALYSIS_END_DAY
+)::DataFrame
     metrics = DataFrame()
 
     for run_id in sort(unique(events.run_id))
         run_events = filter(:run_id => ==(run_id), events)
-        push!(metrics, compute_run_metrics(run_id, run_events), cols = :union)
+        push!(
+            metrics,
+            compute_run_metrics(
+                run_id,
+                run_events;
+                analysis_start_day = analysis_start_day,
+                analysis_end_day = analysis_end_day
+            ),
+            cols = :union
+        )
     end
 
     return leftjoin(runs, metrics; on = :run_id)
@@ -208,10 +239,21 @@ function summarize_metrics(metrics::DataFrame)::DataFrame
     ]
 
     grouped = groupby(metrics, [:NUM_BANKS, :MIN_RESERVES_FACTOR])
-    return combine(grouped, metric_columns .=> mean_or_missing .=> metric_columns)
+    summary = combine(grouped, metric_columns .=> mean_or_missing .=> metric_columns)
+
+    if :analysis_start_day in Symbol.(names(metrics)) && :analysis_end_day in Symbol.(names(metrics))
+        summary.analysis_start_day = fill(first(skipmissing(metrics.analysis_start_day)), nrow(summary))
+        summary.analysis_end_day = fill(first(skipmissing(metrics.analysis_end_day)), nrow(summary))
+    end
+
+    return summary
 end
 
-function build_metrics(results_dir::String = RESULTS_DIR)
+function build_metrics(
+    results_dir::String = RESULTS_DIR;
+    analysis_start_day::Int = ANALYSIS_START_DAY,
+    analysis_end_day::Int = ANALYSIS_END_DAY
+)
     events_path = joinpath(results_dir, "events.csv")
     runs_path = joinpath(results_dir, "runs.csv")
     metrics_path = joinpath(results_dir, "metrics.csv")
@@ -220,7 +262,12 @@ function build_metrics(results_dir::String = RESULTS_DIR)
     events = CSV.read(events_path, DataFrame)
     runs = CSV.read(runs_path, DataFrame)
 
-    metrics = compute_metrics(events, runs)
+    metrics = compute_metrics(
+        events,
+        runs;
+        analysis_start_day = analysis_start_day,
+        analysis_end_day = analysis_end_day
+    )
     summary = summarize_metrics(metrics)
 
     CSV.write(metrics_path, metrics)
