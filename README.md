@@ -47,13 +47,14 @@ Demo outputs are saved under:
 results/demo/
 ```
 
-See the demo README for plots and interpretation:
-
-```bash
-experiments/demo/README.md
-```
+See [experiments/demo/README.md](experiments/demo/README.md) for the demo setup, output files, plots, and observed results.
 
 ## Experiments
+
+Each experiment folder has its own README with the runnable command, generated outputs, and result figures. These pages are convenient to browse directly on GitHub:
+
+- [Demo experiment](experiments/demo/README.md)
+- [Decentralization efficiency experiment](experiments/decentralization_efficiency/README.md)
 
 ### Demo
 
@@ -71,11 +72,7 @@ Results:
 results/demo/
 ```
 
-Documentation:
-
-```bash
-experiments/demo/README.md
-```
+Documentation: [experiments/demo/README.md](experiments/demo/README.md)
 
 ### Decentralization efficiency
 
@@ -92,6 +89,8 @@ Results:
 ```bash
 results/decentralization_efficiency/
 ```
+
+Documentation: [experiments/decentralization_efficiency/README.md](experiments/decentralization_efficiency/README.md)
 
 ## Model overview
 
